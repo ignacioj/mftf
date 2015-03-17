@@ -1,4 +1,6 @@
 # mftf
+Searcher and file copy utility using the $MFT.
+
 This tool searches for filenames and alternate data streams names by parsing the content of the MFT in a
 live system or in a mounted (read-only included) logical drive.
 
