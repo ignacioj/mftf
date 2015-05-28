@@ -31,6 +31,7 @@ Options:
     >Can be used with any of the previous find options:
         -fx..................................Save the results in a file in order to use the option -c.
         -ft..................................Show the results in timeline format.
+        -s...................................Display only the file name.
     -i full_path_to_file/directory.......Show information about the path.
     -i record_number.....................Show information of the MFT record.
     -w record_number.....................Write on screen the 1024 bytes of the MFT record.
