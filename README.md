@@ -43,8 +43,8 @@ Options:
 
 Examples:
 
-MFT-fileoper.exe -d e: -f "svchost|mvui.dll|string with spaces|exact match?"
+mftf.exe -d e: -f "svchost|mvui.dll|string with spaces|exact match?"
 
-MFT-fileoper.exe -d e -fx -f "c:\folder\temp.dll|snbclog.exe"
+mftf.exe -d e -fx -f "c:\folder\temp.dll|snbclog.exe"
 
-MFT-fileoper.exe -d e -c "33:128-1|5623:128-4"
+mftf.exe -d e -c "33:128-1|5623:128-4"
