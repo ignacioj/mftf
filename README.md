@@ -1,50 +1,51 @@
 # mftf
 Searcher and file copy utility using the $MFT.
 
-This tool searches for filenames and alternate data streams names by parsing the content of the MFT in a
-live system or in a mounted (read-only included) logical drive.
+The tool can parse the $MFT from a live system, from a mounted (read-only
+included) logical drive or from a copy of the $MFT.
+It can search for folders, files and ADS,s by parsing the $MFT. It shows the
+sizes and SI and FN datetimes.
+It can copy files or ADS,s using the references provided in the results.
+The copy is made by reading the data from the clusters so that you can copy
+protected system files or files in use.
 
-The results are shown with the filetime information from the attributes $SI and $FN and the sizes.
-
-You can also copy files or alternate data streams using the data or ADS references provided in the results.
-
-The copy is made reading directly the clusters in use. You can copy protected system files or files in use.
-
-The methods used are obtained from KERNEL32.DLL library: GetVolumeInformationByHandleW, ReadFile, CreateFile, SetFilePointerEx, GetFileInformationByHandle, DeviceIoControl.
-
-
-Options:
-
-    -d drive_letter............................Search/copy files from this logical unit.
-    -h........................................This help.
-    -f "string1|string2 with spaces|string3?...".....Find file/directory/ADS names with any of the strings.
-    -f "d:\folder\string"                         .....The path will limit the results to the subfolders. 
-                The match is always case insensitive.
-                " as delimiters for the whole group of strings.
-                | is the boundary between strings.
-                ? al the end of the string specifies an exact coincidence.
-    -ff file.txt....................The strings to search for are in file.txt.
-                                    One string per line, no separator, use ? as needed.
-    -fr string......................Find the string doing a raw search in the 1024 bytes of the MFT record.
-                                    It will report coincidences in the unallocated space of the MFT record.
-    -fads...........................Find all the ADSs in the logical unit.
-    >Can be used with any of the previous find options:
-        -fx..................................Save the results in a file in order to use the option -c.
-        -ft..................................Show the results in timeline format.
-        -s...................................Display only the file name.
-    -i full_path_to_file/directory.......Show information about the path.
-    -i record_number.....................Show information of the MFT record.
-    -w record_number.....................Write on screen the 1024 bytes of the MFT record.
-    -c "reference1|reference2..."......Copy the file/s referenced to this folder.
-                                           | is the separator.
-    -c list.txt..........................Copy all the files referenced in the file list.txt.
-                                           Each line MUST start with: reference + [TAB].
-    -cr record_number....................Copy the 1024 bytes of the MFT record to this folder.
-
+==== Main options:
+ -d drive_letter               Search/copy files from this logical unit.
+ -o file                       Search files from this offline $MFT file.
+ -h                            This help.
+==== String search:
+ -f "string1[|string2 with spaces|string3?...]"
+ -f "\folder\string"         \ at the beginning means from the root folder
+ -f "folder1\folder2\string"
+                          The results will be filtered by the folders tree.
+                          The match is always case insensitive.
+                          " as delimiters for the whole group of strings.
+                          | is the separator.
+                          ? at the end of any string for an exact coincidence.
+ -ff file.txt      The strings to search for are in file.txt. One string per
+                    line. Can use ?.
+ -fr string        Search in the 1024 bytes of the MFT record.
+==== Directory search:
+ -fd "\Dir1\dir2"          Search under tree: "\Dir1\dir2...\"
+ -fd "\Dir1\dir2\"         Can use ? with the last directory or end with \.
+ -r N                        Recursion level (number). Default is 0.
+==== ADS,s search
+ -fads            Find all the ADSs in the logical unit.
+======== Can be used with any of the previous search options:
+ -x               Save the results in a file in order to use the option -c.
+ -t               Display the results in timeline format.
+ -s               Display only the file name.
+==== Information options:
+ -i record_number      Show information of the MFT record.
+ -w record_number      Write on screen the 1024 bytes of the MFT record.
+==== Copy options:
+ -cr record_number     Copy the 1024 bytes of the MFT record to this folder.
+======== For live systems or logical units:
+ -c "ref1[|ref2..]"  Copy the referenced file/s to this folder.
+                                     Use | as separator.
+ -c list.txt           Copy all the files referenced in the file list.txt.
+                        Each line MUST start with: reference + [TAB].
 Examples:
-
-MFT-fileoper.exe -d e: -f "svchost|mvui.dll|string with spaces|exact match?"
-
-MFT-fileoper.exe -d e -fx -f "c:\folder\temp.dll|snbclog.exe"
-
-MFT-fileoper.exe -d e -c "33:128-1|5623:128-4"
+> mftf.exe -d e: -f "svchost|mvui.dll|string with spaces|exact match?"
+> mftf.exe -d e -c 4292:128-1
+> mftf.exe -o "\extr\mft.bin" -fd "\Programdata\microsoft" -r 2 -ft
