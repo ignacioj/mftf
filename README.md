@@ -36,9 +36,7 @@ protected system files or files in use.
                           
                           ? at the end of any string for an exact coincidence.
                           
- -ff file.txt      The strings to search for are in file.txt. One string per
- 
-                    line. Can use ?.
+ -ff file.txt      The strings to search for are in file.txt. One string per line. Can use ?.
                     
  -fr string        Search in the 1024 bytes of the MFT record.
  
