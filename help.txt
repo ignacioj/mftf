@@ -46,4 +46,4 @@ protected system files or files in use.
 Examples:
 > mftf.exe -d e: -f "svchost|mvui.dll|string with spaces|exact match?"
 > mftf.exe -d e -c 4292:128-1
-> mftf.exe -o "\extr\mft.bin" -fd "\Programdata\microsoft" -r 2 -ft
+> mftf.exe -o "d:\extr\mft.bin" -fd "\Programdata\microsoft" -r 2 -ft
