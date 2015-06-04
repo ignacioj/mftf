@@ -46,6 +46,15 @@ protected system files or files in use.
  -c list.txt           Copy all the files referenced in the file list.txt.
                         Each line MUST start with: reference + [TAB].
 Examples:
+<<<<<<< HEAD
 > mftf.exe -d e: -f "svchost|mvui.dll|string with spaces|exact match?"
 > mftf.exe -d e -c 4292:128-1
 > mftf.exe -o "\extr\mft.bin" -fd "\Programdata\microsoft" -r 2 -ft
+=======
+
+mftf.exe -d e: -f "svchost|mvui.dll|string with spaces|exact match?"
+
+mftf.exe -d e -fx -f "c:\folder\temp.dll|snbclog.exe"
+
+mftf.exe -d e -c "33:128-1|5623:128-4"
+>>>>>>> origin/master
