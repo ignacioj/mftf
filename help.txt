@@ -22,8 +22,8 @@ protected system files or files in use.
  -ff file.txt      The strings to search for are in file.txt. One string per
                     line. Can use ?.
  -fr string        Search in the 1024 bytes of the MFT record.
-==== Directory based search:
- -fd "\\Dir1\dir2"              It will match any directories like dir2...
+==== Directory based search. Use always \\ for the root:
+ -fd "\\Dir1\dir2"              It will match any directories dir2...
  -fd "\\Dir1\dir2?"             Can use ? with the last directory.
  -r N                            Recursion level (number). Default is 0.
 ==== ADS,s search
