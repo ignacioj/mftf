@@ -1,4 +1,4 @@
-mftf.exe v. 2.1 by Ignacio J. Perez J.
+mftf.exe v. 2.1.1 by Ignacio J. Perez J.
 The tool can parse the $MFT from a live system, from a mounted (read-only
 included) logical drive or from a copy of the $MFT.
 It can search for folders, files and ADS,s by parsing the $MFT. It shows the
@@ -8,25 +8,24 @@ The copy is made by reading the data from the clusters so that you can copy
 protected system files or files in use.
 
 ==== Main options:
- -d drive_letter               Search/copy files from this logical unit.
- -o file                       Search files from this offline $MFT file.
+ -d drive_letter               $MFT from this logical unit.
+ -o file                       $MFT file.
  -h                            This help.
 ==== String search:
  -f "string1[|string2 with spaces|string3?...]"
- -f "\folder\string"         \ at the beginning means from the root folder
- -f "folder1\folder2\string"
+ -f "folder\string"
                           The results will be filtered by the folders tree.
                           The match is always case insensitive.
                           " as delimiters for the whole group of strings.
                           | is the separator.
-                          ? at the end of any string for an exact coincidence
+                          ? at the end of any string for an exact coincidence.
  -ff file.txt      The strings to search for are in file.txt. One string per
                     line. Can use ?.
  -fr string        Search in the 1024 bytes of the MFT record.
-==== Directory search:
- -fd "\Dir1\dir2"          Search under tree: "\Dir1\dir2...\"
- -fd "\Dir1\dir2\"         Can use ? with the last directory or end with \.
- -r N                        Recursion level (number). Default is 0.
+==== Directory based search:
+ -fd "\\Dir1\dir2"              It will match any directories like dir2...
+ -fd "\\Dir1\dir2?"             Can use ? with the last directory.
+ -r N                            Recursion level (number). Default is 0.
 ==== ADS,s search
  -fads            Find all the ADSs in the logical unit.
 ======== Can be used with any of the previous search options:
@@ -46,4 +45,4 @@ protected system files or files in use.
 Examples:
 > mftf.exe -d e: -f "svchost|mvui.dll|string with spaces|exact match?"
 > mftf.exe -d e -c 4292:128-1
-> mftf.exe -o "\extr\mft.bin" -fd "\Programdata\microsoft" -r 2 -ft
+> mftf.exe -o "d:\extr\mft.bin" -fd "\\Programdata\microsoft" -r 2 -ft
