@@ -39,11 +39,11 @@ String search:
                     
  -fr string        Search in the 1024 bytes of the MFT record.
  
-==== Directory based search. Use always \\ for the root:
+==== Directory based search. Use always \\\\ for the root:
 
- -fd "\\Dir1\dir2"              It will match any directories dir2...
+ -fd "\\\\Dir1\dir2"              It will match any directories dir2...
  
- -fd "\\Dir1\dir2?"             Can use ? with the last directory.
+ -fd "\\\\Dir1\dir2?"             Can use ? with the last directory.
  
  -r N                            Recursion level (number). Default is 0.
  
@@ -85,4 +85,3 @@ mftf.exe -d e: -f "svchost|mvui.dll|string with spaces|exact match?"
 
 mftf.exe -d e -c 4292:128-1
 
-mftf.exe -o "d:\extr\mft.bin" -fd "\\Programdata\microsoft" -r 2 -ft
