@@ -1,49 +1,52 @@
-Searcher and file copy utility using the $MFT.
+The tool can parse the $MFT from a live system, from a mounted (read-only included) logical drive or from a copy of the $MFT.
 
-The tool can parse the $MFT from a live system, from a mounted (read-only
-included) logical drive or from a copy of the $MFT.
-
-It can search for folders, files and ADS,s by parsing the $MFT. It shows the
-sizes and SI and FN datetimes.
+Deleted files and folders have their path with the prefix "?".
 
 It can copy files or ADS,s using the references provided in the results.
-The copy is made by reading the data from the clusters so that you can copy
-protected system files or files in use.
 
-Main options:
+The copy is made by reading the data from the clusters so that you can copy protected system files or files in use.
+(Imports from "kernel32.dll":	CloseHandle, CreateFile, ReadFile, SetFilePointerEx).
 
- -d drive_letter               $MFT from this logical unit.
+
+==== Main options:
+
+ -d drive_letter               Search/copy files from this logical unit.
  
- -o file                       $MFT file.
+ -o file                       Search files from this offline $MFT file.
  
  -h                            This help.
  
- 
-String search:
+==== Timeline of the MFT:
 
- -f "string1[|string2 with spaces|string3?...]"
+ -tl
+ 
+==== Logical string search:
+
+ -f "string1|string2 with spaces|string3<"
  
  -f "folder\string"
  
-                          The results will be filtered by the folder name.
-                          
+                          The results are filtered using the string "folder".
+						  
                           The match is always case insensitive.
-                          
+						  
                           " as delimiters for the whole group of strings.
-                          
+						  
                           | is the separator.
-                          
-                          ? at the end of any string for an exact coincidence.
-                          
- -ff file.txt      The strings to search for are in file.txt. One string per line. You can use ?.
-                    
- -fr string        Search in the 1024 bytes of the MFT record.
+						  
+                          < at the end of "string" for an exact coincidence.
+						  
+ -ff file.txt      The strings to search for are in file.txt. One string per line. Can use <.
  
-==== Directory based search. Use always \\\\ for the root:
+==== Raw search
 
- -fd "\\\\Dir1\dir2"              It will match any directories dir2...
+ -fr string        Search in the 1024 bytes of each MFT record.
  
- -fd "\\\\Dir1\dir2?"             Can use ? with the last directory.
+==== Root based search: files and folders under the tree
+
+ -fd "\\\\Dir1\dir2"             It will match any directories like dir2...
+ 
+ -fd "\\\\Dir1\dir2\Dir3<"       Can use < with the last directory.
  
  -r N                            Recursion level (number). Default is 0.
  
@@ -55,7 +58,7 @@ String search:
 
  -x               Save the results in a file in order to use the option -c.
  
- -t               Display the results in timeline format.
+ -t               Display the results in a timeline format.
  
  -s               Display only the file name.
  
@@ -74,14 +77,46 @@ String search:
  -c "ref1[|ref2..]"  Copy the referenced file/s to this folder.
  
                                      Use | as separator.
-                                     
+									 
  -c list.txt           Copy all the files referenced in the file list.txt.
  
                         Each line MUST start with: reference + [TAB].
-                        
+						
 Examples:
 
-mftf.exe -d e: -f "svchost|mvui.dll|string with spaces|exact match?"
+	In this example the file has 4 $FN attributes and two ADS and the Attribute List points to another record.
 
-mftf.exe -d e -c 4292:128-1
+mftf -d c -i 623677
+
+Record: 623677 [Attribute List points to records numbers: 623745]
+[File]  \\\\_SMSVC~1.INI
+[File]  \\\\_SMSvcHostPerfCounters_D.ini
+[File]  \\\\_SMSvcHostPerfCounters_D.ini
+[File]  \\\\_SMSvcHostPerfCounters_D.ini
+SI[MACB]: 2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/08/23 12:01:53.1659607   2014/02/18 07:51:58.3286194
+FN[MACB]: 2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194
+FN[MACB]: 2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194
+FN[MACB]: 2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/02/18 07:52:00.2179972   2014/02/18 07:51:58.3286194
+FN[MACB]: 2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/08/23 12:01:53.1503598   2014/02/18 07:51:58.3286194
+Reference: 623677:128-1 [Size: 41 bytes|| Size on disk: 0 bytes]
+[ADS] Name: hmx33t [Reference: 623677:128-2 || Size: 1069547520 bytes]
+[ADS] Name: Zone.Identifier [Reference: 623677:128-3 || Size: 23 bytes]
+
+
+	The same file in the timeline format with dates and times from all the $FN attributes.
+	The dates and times of the ADS are those of the $SI attribute.
+
+mftf -d c -f "_SMSvcHostPerfCounters_D" -t
+
+Filetime,[MACB],filename,record,size
+2014/02/18 07:51:58.3286194,SI[MA.B],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+2014/08/23 12:01:53.1659607,SI[..C.],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+2014/02/18 07:51:58.3286194,FN[MACB],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+2014/02/18 07:51:58.3286194,FN[MA.B],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+2014/02/18 07:52:00.2179972,FN[..C.],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+2014/08/23 12:01:53.1503598,FN[..C.],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+2014/02/18 07:51:58.3286194,SI[MA.B],\\\\_SMSvcHostPerfCounters_D.ini:hmx33t,623677,1069547520
+2014/08/23 12:01:53.1659607,SI[..C.],\\\\_SMSvcHostPerfCounters_D.ini:hmx33t,623677,1069547520
+2014/02/18 07:51:58.3286194,SI[MA.B],\\\\_SMSvcHostPerfCounters_D.ini:Zone.Identifier,623677,23
+2014/08/23 12:01:53.1659607,SI[..C.],\\\\_SMSvcHostPerfCounters_D.ini:Zone.Identifier,623677,23
 
