@@ -90,13 +90,13 @@ mftf -d c -i 623677
 
 	Record: 623677 [Attribute List points to records numbers: 623745]
 
-	[File]  \\\\_SMSVC~1.INI
+	[File]  \\_SMSVC~1.INI
 
-	[File]  \\\\_SMSvcHostPerfCounters_D.ini
+	[File]  \\_SMSvcHostPerfCounters_D.ini
 
-	[File]  \\\\_SMSvcHostPerfCounters_D.ini
+	[File]  \\_SMSvcHostPerfCounters_D.ini
 
-	[File]  \\\\_SMSvcHostPerfCounters_D.ini
+	[File]  \\_SMSvcHostPerfCounters_D.ini
 
 	SI[MACB]: 2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/08/23 12:01:53.1659607   2014/02/18 07:51:58.3286194
 
@@ -122,23 +122,23 @@ mftf -d c -f "_SMSvcHostPerfCounters_D" -t
 
 	Filetime,[MACB],filename,record,size
 
-	2014/02/18 07:51:58.3286194,SI[MA.B],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+	2014/02/18 07:51:58.3286194,SI[MA.B],\\_SMSvcHostPerfCounters_D.ini,623677,41
 
-	2014/08/23 12:01:53.1659607,SI[..C.],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+	2014/08/23 12:01:53.1659607,SI[..C.],\\_SMSvcHostPerfCounters_D.ini,623677,41
 
-	2014/02/18 07:51:58.3286194,FN[MACB],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+	2014/02/18 07:51:58.3286194,FN[MACB],\\_SMSvcHostPerfCounters_D.ini,623677,41
 
-	2014/02/18 07:51:58.3286194,FN[MA.B],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+	2014/02/18 07:51:58.3286194,FN[MA.B],\\_SMSvcHostPerfCounters_D.ini,623677,41
 
-	2014/02/18 07:52:00.2179972,FN[..C.],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+	2014/02/18 07:52:00.2179972,FN[..C.],\\_SMSvcHostPerfCounters_D.ini,623677,41
 
-	2014/08/23 12:01:53.1503598,FN[..C.],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+	2014/08/23 12:01:53.1503598,FN[..C.],\\_SMSvcHostPerfCounters_D.ini,623677,41
 
-	2014/02/18 07:51:58.3286194,SI[MA.B],\\\\_SMSvcHostPerfCounters_D.ini:hmx33t,623677,1069547520
+	2014/02/18 07:51:58.3286194,SI[MA.B],\\_SMSvcHostPerfCounters_D.ini:hmx33t,623677,1069547520
 
-	2014/08/23 12:01:53.1659607,SI[..C.],\\\\_SMSvcHostPerfCounters_D.ini:hmx33t,623677,1069547520
+	2014/08/23 12:01:53.1659607,SI[..C.],\\_SMSvcHostPerfCounters_D.ini:hmx33t,623677,1069547520
 
-	2014/02/18 07:51:58.3286194,SI[MA.B],\\\\_SMSvcHostPerfCounters_D.ini:Zone.Identifier,623677,23
+	2014/02/18 07:51:58.3286194,SI[MA.B],\\_SMSvcHostPerfCounters_D.ini:Zone.Identifier,623677,23
 
-	2014/08/23 12:01:53.1659607,SI[..C.],\\\\_SMSvcHostPerfCounters_D.ini:Zone.Identifier,623677,23
+	2014/08/23 12:01:53.1659607,SI[..C.],\\_SMSvcHostPerfCounters_D.ini:Zone.Identifier,623677,23
 
