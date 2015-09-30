@@ -84,7 +84,7 @@ The copy is made by reading the data from the clusters so that you can copy prot
 						
 Examples:
 
-	In this example the file has 4 $FN attributes and two ADS and the Attribute List points to another record.
+In this example the file has 4 $FN attributes and two ADS and the Attribute List points to another record.
 
 mftf -d c -i 623677
 
