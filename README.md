@@ -88,57 +88,57 @@ Examples:
 
 mftf -d c -i 623677
 
-Record: 623677 [Attribute List points to records numbers: 623745]
+	Record: 623677 [Attribute List points to records numbers: 623745]
 
-[File]  \\\\_SMSVC~1.INI
+	[File]  \\\\_SMSVC~1.INI
 
-[File]  \\\\_SMSvcHostPerfCounters_D.ini
+	[File]  \\\\_SMSvcHostPerfCounters_D.ini
 
-[File]  \\\\_SMSvcHostPerfCounters_D.ini
+	[File]  \\\\_SMSvcHostPerfCounters_D.ini
 
-[File]  \\\\_SMSvcHostPerfCounters_D.ini
+	[File]  \\\\_SMSvcHostPerfCounters_D.ini
 
 	SI[MACB]: 2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/08/23 12:01:53.1659607   2014/02/18 07:51:58.3286194
 
-FN[MACB]: 2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194
+	FN[MACB]: 2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194
 
-FN[MACB]: 2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194
+	FN[MACB]: 2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194
 
-FN[MACB]: 2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/02/18 07:52:00.2179972   2014/02/18 07:51:58.3286194
+	FN[MACB]: 2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/02/18 07:52:00.2179972   2014/02/18 07:51:58.3286194
 
-FN[MACB]: 2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/08/23 12:01:53.1503598   2014/02/18 07:51:58.3286194
+	FN[MACB]: 2014/02/18 07:51:58.3286194   2014/02/18 07:51:58.3286194   2014/08/23 12:01:53.1503598   2014/02/18 07:51:58.3286194
 
-Reference: 623677:128-1 [Size: 41 bytes|| Size on disk: 0 bytes]
+	Reference: 623677:128-1 [Size: 41 bytes|| Size on disk: 0 bytes]
 
-[ADS] Name: hmx33t [Reference: 623677:128-2 || Size: 1069547520 bytes]
+	[ADS] Name: hmx33t [Reference: 623677:128-2 || Size: 1069547520 bytes]
 
-[ADS] Name: Zone.Identifier [Reference: 623677:128-3 || Size: 23 bytes]
+	[ADS] Name: Zone.Identifier [Reference: 623677:128-3 || Size: 23 bytes]
 
 
-	The same file in the timeline format with dates and times from all the $FN attributes.
-	The dates and times of the ADS are those of the $SI attribute.
+The same file in the timeline format with dates and times from all the $FN attributes.
+The dates and times of the ADS are those of the $SI attribute.
 
 mftf -d c -f "_SMSvcHostPerfCounters_D" -t
 
-Filetime,[MACB],filename,record,size
+	Filetime,[MACB],filename,record,size
 
-2014/02/18 07:51:58.3286194,SI[MA.B],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+	2014/02/18 07:51:58.3286194,SI[MA.B],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
 
-2014/08/23 12:01:53.1659607,SI[..C.],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+	2014/08/23 12:01:53.1659607,SI[..C.],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
 
-2014/02/18 07:51:58.3286194,FN[MACB],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+	2014/02/18 07:51:58.3286194,FN[MACB],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
 
-2014/02/18 07:51:58.3286194,FN[MA.B],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+	2014/02/18 07:51:58.3286194,FN[MA.B],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
 
-2014/02/18 07:52:00.2179972,FN[..C.],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+	2014/02/18 07:52:00.2179972,FN[..C.],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
 
-2014/08/23 12:01:53.1503598,FN[..C.],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
+	2014/08/23 12:01:53.1503598,FN[..C.],\\\\_SMSvcHostPerfCounters_D.ini,623677,41
 
-2014/02/18 07:51:58.3286194,SI[MA.B],\\\\_SMSvcHostPerfCounters_D.ini:hmx33t,623677,1069547520
+	2014/02/18 07:51:58.3286194,SI[MA.B],\\\\_SMSvcHostPerfCounters_D.ini:hmx33t,623677,1069547520
 
-2014/08/23 12:01:53.1659607,SI[..C.],\\\\_SMSvcHostPerfCounters_D.ini:hmx33t,623677,1069547520
+	2014/08/23 12:01:53.1659607,SI[..C.],\\\\_SMSvcHostPerfCounters_D.ini:hmx33t,623677,1069547520
 
-2014/02/18 07:51:58.3286194,SI[MA.B],\\\\_SMSvcHostPerfCounters_D.ini:Zone.Identifier,623677,23
+	2014/02/18 07:51:58.3286194,SI[MA.B],\\\\_SMSvcHostPerfCounters_D.ini:Zone.Identifier,623677,23
 
-2014/08/23 12:01:53.1659607,SI[..C.],\\\\_SMSvcHostPerfCounters_D.ini:Zone.Identifier,623677,23
+	2014/08/23 12:01:53.1659607,SI[..C.],\\\\_SMSvcHostPerfCounters_D.ini:Zone.Identifier,623677,23
 
