@@ -2239,7 +2239,7 @@ Examples:
                     dictioFechas.Add(dateAccessed, ".A..".ToCharArray()); 
                 }
                 List<string> keyList = new List<string>(dictioFechas.Keys);
-                if (dictioFechas.ContainsKey(dateAccessed))
+                if (dictioFechas.ContainsKey(dateMFTModif))
                 {
                     foreach (var clave in keyList) 
                     {
@@ -2254,7 +2254,7 @@ Examples:
                     dictioFechas.Add(dateMFTModif, "..C.".ToCharArray());
                 }
                 keyList = new List<string>(dictioFechas.Keys);
-                if (dictioFechas.ContainsKey(dateAccessed))
+                if (dictioFechas.ContainsKey(dateCreated))
                 {
                     foreach (var clave in keyList) 
                     {
