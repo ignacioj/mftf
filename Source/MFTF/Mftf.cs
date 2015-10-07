@@ -533,7 +533,7 @@ Examples:
                         try
                         {
                             GetCoinciDetallesInfo(infoMFT);
-                            infoMFT.MFT_SHOW_DATA();
+                            infoMFT.MFT_SHOW_DATA_TL();
                             infoMFT = null;
                         }
                         catch
@@ -1955,6 +1955,7 @@ Examples:
             public string dataBase = "";
             public Dictionary<string,dataADSInfo> diccIDDataADSInfo = new Dictionary<string, dataADSInfo>();
             public UInt64 attrListStartVCN;
+			private char[] macb = "M...".ToCharArray();
             
             private const byte SIG_OFFSET = 0;
             private const byte FIXUP_ARRAY_OFFSET = 4;
@@ -2190,12 +2191,46 @@ Examples:
                 }
             }
 
+            public void MFT_SHOW_DATA_TL()
+            {
+                //// Para Solo MFT dictio
+                Dictionary<string, char[]> dictioFechasSI = new Dictionary<string, char[]>();
+                string longName = "";
+                for (int i = 0; i < nombreFN.Count; i++)
+                {
+                    //Lee el FRN del directorio que lo contiene y busca en el diccionario de USN
+                    nombreFN[i] = Path.Combine(GetPath.soloMFTGetFullyQualifiedPath(parentDirectoryFN), nombreFN[i]);
+                    if ((valFileFlags == 0) || (valFileFlags == 2))
+                    {
+                        nombreFN[i] = string.Concat("?", nombreFN[i]);
+                    }
+                    longName = longName.Length < nombreFN[i].Length ? nombreFN[i] : longName;
+                }
+                imprimeFechas(ref dictioFechasSI, "SI", longName, dateModificado_SI, dateAccessed_SI, dateMFTModif_SI, dateCreated_SI);
+                deduplicarFNtimeline.Clear();
+                for (int i = 0; i < dateCreated_FN.Count; i++)
+                {
+                    //El diccionario debe recrearse para cada FN
+                    Dictionary<string, char[]> dictioFechas = new Dictionary<string, char[]>();
+                    imprimeFechas(ref dictioFechas, "FN", longName, dateModificado_FN[i], dateAccessed_FN[i], dateMFTModif_FN[i], dateCreated_FN[i]);
+                }
+                foreach (var datas in diccIDDataADSInfo)
+                {
+                    var enumerator = dictioFechasSI.GetEnumerator();
+                    while (enumerator.MoveNext())
+                    {
+                        var pair = enumerator.Current;
+                        using (var writer = new StreamWriter(nameOut, true))
+                        {
+                            writer.WriteLine("{0}\tSI[{1}]\t{2}:{3}\t{4}\t{5}", pair.Key, new string(pair.Value), longName, datas.Value.name, recordNumber, datas.Value.size.ToString("F0"));
+                        }
+                    }
+                }
+            }
             public void imprimeFechas(ref Dictionary<string, char[]> dictioFechas, string tipoFecha, string _longName, string dateModificado, string dateAccessed, string dateMFTModif, string dateCreated)
             {
-                char[] macb = "M...".ToCharArray();
                 dictioFechas.Add(dateModificado, macb);
-                char[] valor;
-                if (dictioFechas.TryGetValue(dateAccessed, out valor))
+                if (dictioFechas.ContainsKey(dateAccessed))
                 { 
                     dictioFechas[dateModificado] = "MA..".ToCharArray();
                 }
@@ -2204,7 +2239,7 @@ Examples:
                     dictioFechas.Add(dateAccessed, ".A..".ToCharArray()); 
                 }
                 List<string> keyList = new List<string>(dictioFechas.Keys);
-                if (dictioFechas.TryGetValue(dateMFTModif, out valor))
+                if (dictioFechas.ContainsKey(dateAccessed))
                 {
                     foreach (var clave in keyList) 
                     {
@@ -2219,7 +2254,7 @@ Examples:
                     dictioFechas.Add(dateMFTModif, "..C.".ToCharArray());
                 }
                 keyList = new List<string>(dictioFechas.Keys);
-                if (dictioFechas.TryGetValue(dateCreated, out valor))
+                if (dictioFechas.ContainsKey(dateAccessed))
                 {
                     foreach (var clave in keyList) 
                     {
