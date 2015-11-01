@@ -2214,14 +2214,14 @@ Examples:
                     Dictionary<string, char[]> dictioFechas = new Dictionary<string, char[]>();
                     imprimeFechas(ref dictioFechas, "FN", longName, dateModificado_FN[i], dateAccessed_FN[i], dateMFTModif_FN[i], dateCreated_FN[i]);
                 }
-                foreach (var datas in diccIDDataADSInfo)
+                using (var writer = new StreamWriter(nameOut, true))
                 {
-                    var enumerator = dictioFechasSI.GetEnumerator();
-                    while (enumerator.MoveNext())
+                    foreach (var datas in diccIDDataADSInfo)
                     {
-                        var pair = enumerator.Current;
-                        using (var writer = new StreamWriter(nameOut, true))
+                        var enumerator = dictioFechasSI.GetEnumerator();
+                        while (enumerator.MoveNext())
                         {
+                            var pair = enumerator.Current;
                             writer.WriteLine("{0}\tSI[{1}]\t{2}:{3}\t{4}\t{5}", pair.Key, new string(pair.Value), longName, datas.Value.name, recordNumber, datas.Value.size.ToString("F0"));
                         }
                     }
@@ -2232,61 +2232,47 @@ Examples:
                 dictioFechas.Add(dateModificado, macb);
                 if (dictioFechas.ContainsKey(dateAccessed))
                 { 
-                    dictioFechas[dateModificado] = "MA..".ToCharArray();
+                    dictioFechas[dateAccessed] = "MA..".ToCharArray();
                 }
                 else
                 {
                     dictioFechas.Add(dateAccessed, ".A..".ToCharArray()); 
                 }
-                List<string> keyList = new List<string>(dictioFechas.Keys);
                 if (dictioFechas.ContainsKey(dateMFTModif))
                 {
-                    foreach (var clave in keyList) 
-                    {
-                        if (string.CompareOrdinal(clave, dateMFTModif) == 0) 
-                        {
-                            dictioFechas[clave][2] = 'C';
-                        } 
-                    }
+					dictioFechas[dateMFTModif][2] = 'C';
                 }
                 else 
                 {
                     dictioFechas.Add(dateMFTModif, "..C.".ToCharArray());
                 }
-                keyList = new List<string>(dictioFechas.Keys);
                 if (dictioFechas.ContainsKey(dateCreated))
                 {
-                    foreach (var clave in keyList) 
-                    {
-                        if (string.CompareOrdinal(clave, dateCreated) == 0)
-                        {
-                            dictioFechas[clave][3] = 'B';
-                        }
-                    }
+					dictioFechas[dateCreated][3] = 'B';
                 }
                 else 
                 {
                     dictioFechas.Add(dateCreated, "...B".ToCharArray());
                 }
                 var enumerator = dictioFechas.GetEnumerator();
-                while (enumerator.MoveNext())
+                using (var writer = new StreamWriter(nameOut, true))
                 {
-                    var pair = enumerator.Current;
-                    string tempo = string.Join("_", new string[] { pair.Key, tipoFecha, new string(pair.Value), _longName });
-                    if (!deduplicarFNtimeline.ContainsKey(tempo))
+                    while (enumerator.MoveNext())
                     {
-                        if (CommandLine.Parameters.ContainsKey("t"))
+                        var pair = enumerator.Current;
+                        string tempo = string.Join("_", new string[] { pair.Key, tipoFecha, new string(pair.Value), _longName });
+                        if (!deduplicarFNtimeline.ContainsKey(tempo))
                         {
-                            Console.WriteLine("{0},{1}[{2}],{3},{4},{5}", pair.Key, tipoFecha, new string(pair.Value), _longName, recordNumber, realFileSize.ToString("F0"));
-                        }
-                        else
-                        {
-                            using (var writer = new StreamWriter(nameOut, true))
+                            if (CommandLine.Parameters.ContainsKey("t"))
+                            {
+                                Console.WriteLine("{0},{1}[{2}],{3},{4},{5}", pair.Key, tipoFecha, new string(pair.Value), _longName, recordNumber, realFileSize.ToString("F0"));
+                            }
+                            else
                             {
                                 writer.WriteLine("{0}\t{1}[{2}]\t{3}\t{4}\t{5}", pair.Key, tipoFecha, new string(pair.Value), _longName, recordNumber, realFileSize.ToString("F0"));
                             }
+                            deduplicarFNtimeline.Add(tempo, "");
                         }
-                        deduplicarFNtimeline.Add(tempo, "");
                     }
                 }
             }
