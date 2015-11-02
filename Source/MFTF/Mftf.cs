@@ -33,6 +33,10 @@ namespace MFT_fileoper
         public static int recursion;
         public static Dictionary<UInt32,List<UInt32>> listaRecordHijos = new Dictionary<UInt32,List<UInt32>>();
 
+        public static StreamWriter writer;
+        public static BinaryReader readBin;
+        public static int tam; 
+
         static void Main(string[] args)
         {
             DateTime StartTime = DateTime.Now;
@@ -41,7 +45,8 @@ namespace MFT_fileoper
             CommandLine = new Arguments(args);
                 if (CommandLine["h"] != null || args.Length < 3)
                 {
-                    Console.WriteLine(@"mftf.exe v. 2.3.1
+                    Console.WriteLine(@"mftf.exe v.2.4.0
+Fast MFT timeliner and searcher.
 The tool can parse the $MFT from a live system, from a mounted (read-only
 included) logical drive or from a copy of the $MFT.
 Deleted files and folders have their path with the prefix ""?"".
@@ -49,7 +54,7 @@ It can copy files or ADS,s using the references provided in the results.
 The copy is made by reading the data from the clusters so that you can copy
 protected system files or files in use.
 
-Copyright 2015 Ignacio J. Perez J.
+Copyright 2015 Ignacio J. Perez Jimenez
 
 Licensed under the Apache License, Version 2.0 (the ""License"");
 you may not use this file except in compliance with the License.
@@ -126,8 +131,10 @@ Examples:
                         try
                         {
                             byte[] cabecera = { 0x46, 0x49, 0x4C, 0x45 }; //FILE
-                            BinaryReader binFileRead = new BinaryReader(File.Open(mftFile,FileMode.Open));
-                            byte[] checkMftFile = binFileRead.ReadBytes(4);
+                            readBin = new BinaryReader(File.Open(mftFile,FileMode.Open));
+                            byte[] checkMftFile = new byte[4];
+                            readBin.Read(checkMftFile,0,4);
+                            readBin.BaseStream.Seek(0, SeekOrigin.Begin);
                             if (BitConverter.ToInt32(cabecera, 0) == BitConverter.ToInt32(checkMftFile, 0))
                             {
                                 origenValido = true;
@@ -137,7 +144,6 @@ Examples:
                                 origenValido = false;
                                 Console.WriteLine("\nCheck the mft file or the path: Invalid mft file.");
                             }
-                            binFileRead.Close();
                         }
                         catch
                         {
@@ -158,11 +164,10 @@ Examples:
                                     CargaMftMemoria(mftOffset);
                                 }
                                 MakeSoloMFTDict(mftOffset);
-                                using (var writer = new StreamWriter(nameOut, true))
-                                {
-                                    writer.WriteLine("Filetime\t[MACB]\tfilename\trecord\tsize");
-                                }
-                                GeneraTimeline(mftOffset);
+                                if (!CommandLine.Parameters.ContainsKey("x")) { CommandLine.Parameters.Add("x", ""); }
+                                writer = new StreamWriter(nameOut, true);
+                                writer.WriteLine("Filetime\t[MACB]\tfilename\trecord\tsize");
+                                GeneraTimelineO(mftOffset);
                             }
                             else
                             {
@@ -173,12 +178,14 @@ Examples:
                         {
                             nameOut = DateTime.Now.ToString("yyMMddHHmmss") + "_References.txt";
                             Console.Write("\nSearching all the ADSs.\n");
+                            if (CommandLine["x"] != null) { writer = new StreamWriter(nameOut, true); }
                             MakeSoloMFTDict(mftOffset);
                             BuscaTodosADSs(mftOffset);
                         }
                         else if ((CommandLine["fr"] != null) & (CommandLine["fr"] != ""))
                         {
                             nameOut = DateTime.Now.ToString("yyMMddHHmmss") + "_References.txt";
+                            if (CommandLine["x"] != null) { writer = new StreamWriter(nameOut, true); }
                             string cadeBuscada = CommandLine["fr"];
                             Console.Write("\nRaw search:");
                             Console.WriteLine(CommandLine["fr"]);
@@ -188,22 +195,24 @@ Examples:
                         else if ((CommandLine["ff"] != null) & (CommandLine["ff"] != ""))
                         {
                             nameOut = DateTime.Now.ToString("yyMMddHHmmss") + "_References.txt";
+                            if (CommandLine["x"] != null) { writer = new StreamWriter(nameOut, true); }
                             var buscadasFile = File.ReadAllLines(CommandLine["ff"]);
                             buscadasList.AddRange(buscadasFile);
                             Console.WriteLine("\nFinding strings from file {0}", CommandLine["ff"]);
                             MakeSoloMFTDict(mftOffset);
-                            BuscaCadenas(mftOffset, buscadasList);
+                            BuscaCadenasO(mftOffset, buscadasList);
                         }
                         else if ((CommandLine["f"] != null) & (CommandLine["f"] != ""))
                         {
                             nameOut = DateTime.Now.ToString("yyMMddHHmmss") + "_References.txt";
+                            if (CommandLine["x"] != null) { writer = new StreamWriter(nameOut, true); }
                             Console.Write("\nFind:");
                             char[] delimiters = new char[] { '|' };
                             string[] words = CommandLine["f"].Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
                             Console.WriteLine(String.Join("|", words));
                             buscadasList.AddRange(words);
                             MakeSoloMFTDict(mftOffset);
-                            BuscaCadenas(mftOffset, buscadasList);
+                            BuscaCadenasO(mftOffset, buscadasList);
                         }
                         else if ((CommandLine["fd"] != null) & (CommandLine["fd"] != ""))
                         {
@@ -234,12 +243,13 @@ Examples:
                                     recursion = 0;
                                 }
                                 nameOut = DateTime.Now.ToString("yyMMddHHmmss") + "_References.txt";
+                                if (CommandLine["x"] != null) { writer = new StreamWriter(nameOut, true); }
                                 Console.Write("\nMatch directory:");
                                 Console.WriteLine(CommandLine["fd"]);
                                 Console.WriteLine("Recursion: " + recursion.ToString());
                                 buscadasList.Add(CommandLine["fd"]);
                                 MakeSoloMFTDict(mftOffset);
-                                BuscaCadenas(mftOffset, buscadasList);
+                                BuscaCadenasO(mftOffset, buscadasList);
                             }
                         }
                         else if ((CommandLine["i"] != null) & (CommandLine["i"] != ""))
@@ -283,7 +293,7 @@ Examples:
                         {
                             if (CommandLine["o"] != null)
                             {
-                                Console.WriteLine("Nothing to copy! It's an offline hive.");
+                                Console.WriteLine("\nNothing to copy! It's an offline hive.");
                             }
                             else
                             {
@@ -340,7 +350,19 @@ Examples:
                     }
                     mftFileArray = null;
                 }
+
+
+
                 else Console.WriteLine("\nUse [-d drive_letter] or [-o offline_mft_file].");
+                if (writer != null)
+                {
+                    writer.Close();
+                    writer.Dispose();
+                }
+                if (readBin != null) {
+                    readBin.Close();
+                    readBin.Dispose();
+                }
         }
 
         public static void CopiaRawRecord(UInt32 recordToCopy, UInt64 mftOffset) //
@@ -350,12 +372,12 @@ Examples:
             bool loTengo = false;
             if (CommandLine["o"] != null)
             {
-                mftFileArray = File.ReadAllBytes(mftFile);
-                uint runLength_2 = ((uint)mftFileArray.Length) / 1024;
+                int pos = 0;
+                tam = (int)readBin.BaseStream.Length;
                 byte[] content2 = new byte[1024];
-                for (int n = 0; n < runLength_2; n++)
+                while (pos < tam)
                 {
-                    Array.Copy(mftFileArray, n * 1024, content2, 0, 1024);
+                    content2 = readBin.ReadBytes(1024);
                     if (BitConverter.ToUInt32(content2, 44) == recordToCopy)
                     {
                         loTengo = true;
@@ -396,12 +418,12 @@ Examples:
                             break;
                         }
                     }
+                    pos += 1024;
                 }
                 mftFileArray = null;
             }
             else
             {
-                // Lo creo solo con la MFT
                 MFT_ENTRY mftEntry = new MFT_ENTRY(ReadRaw(mftOffset, 1024));
                 while (mftEntry.attributeSig != DATA_SIG)
                 {
@@ -415,7 +437,6 @@ Examples:
                     dataRunlist.GETCLUSTERS(mftEntry);
                     if (!dataRunlist.isSparse)
                     {
-                        //Cargo la MFT en memoria en vez de acceder por cachos de 1024
                         uint runLength_ = dataRunlist.runLength;
                         byte[] runActualMFT = ReadRaw(dataRunlist.offsetBytesMFT, runLength_ * sectorxCluster * bytesxSector);
                         runLength_ = (runLength_ * sectorxCluster * bytesxSector) / 1024; //clusters a grupos de 1024 (tamaño de entrada de mft)
@@ -477,7 +498,6 @@ Examples:
 
         public static void CargaMftMemoria(UInt64 mftOffset)
         {
-            // Lo creo solo con la MFT
             int oldSize;
             byte[] runActualMFT;
             MFT_ENTRY mftEntry = new MFT_ENTRY(ReadRawD(mftOffset, 1024));
@@ -493,8 +513,8 @@ Examples:
                 dataRunlist.GETCLUSTERS(mftEntry);
                 if (!dataRunlist.isSparse)
                 {
-                    //Cargo la MFT en memoria en vez de acceder por cachos de 1024
                     uint runLength_ = dataRunlist.runLength;
+
                     if (mftFileArray != null) { oldSize = mftFileArray.Length; } else { oldSize = 0; }
                     try
                     {
@@ -507,6 +527,9 @@ Examples:
                     }
 
                     System.Buffer.BlockCopy(ReadRawD(dataRunlist.offsetBytesMFT, runLength_ * sectorxCluster * bytesxSector), 0, mftFileArray, oldSize, Convert.ToInt32(runLength_ * sectorxCluster * bytesxSector));
+                    
+                    
+                    
                 }
                 runActualMFT = null;
                 dataRunlist.NEXTDATARUNLIST(mftEntry.rawRecord[dataRunlist.runlistOffset]);
@@ -515,51 +538,91 @@ Examples:
 
         public static void GeneraTimeline(UInt64 mftOffset)
         {
-            uint entryCoincid = 0;
-                uint runLength_2 = ((uint)mftFileArray.Length) / 1024;
-                byte[] content2 = new byte[1024];
-                for (int n = 0; n < runLength_2; n++)
+            uint runLength_2 = ((uint)mftFileArray.Length) / 1024;
+            byte[] content2 = new byte[1024];
+            for (int n = 0; n < runLength_2; n++)
+            {
+                Array.Copy(mftFileArray, n * 1024, content2, 0, 1024);
+                UInt32 mftSig = BitConverter.ToUInt32(content2, 0);
+                if (mftSig != FILE_SIG) { continue; } //no valid record
+                MFT_ENTRY infoMFT = new MFT_ENTRY(content2);
+                if (!infoMFT.recordValido)
                 {
-                    Array.Copy(mftFileArray, n * 1024, content2, 0, 1024);
-                    UInt32 mftSig = BitConverter.ToUInt32(content2, 0);
-                    if (mftSig != FILE_SIG) { continue; } //no valid record
-                    MFT_ENTRY infoMFT = new MFT_ENTRY(content2);
-                    if (!infoMFT.recordValido)
+                    continue;
+                }
+                if (infoMFT.fileReferenceToBaseFile == 0) //Comprobacion para casos donde el nombre FN no está en el record base
+                {
+                    try
                     {
-                        continue;
+                        GetCoinciDetallesInfo(infoMFT);
+                        infoMFT.MFT_SHOW_DATA_TL();
+                        infoMFT = null;
                     }
-                    if (infoMFT.fileReferenceToBaseFile == 0)
+                    catch
                     {
-                        try
-                        {
-                            GetCoinciDetallesInfo(infoMFT);
-                            infoMFT.MFT_SHOW_DATA_TL();
-                            infoMFT = null;
-                        }
-                        catch
-                        {
-                            //captura las excepciones por records validos pero que no contienen nada de nada
-                        }
                     }
                 }
+            }
+        }
+
+        public static void GeneraTimelineO(UInt64 mftOffset)
+        {
+            byte[] content2 = new byte[1024];
+            long pos = 0;
+            MFT_ENTRY infoMFT = null;
+            int nn = 0;
+            long tam = readBin.BaseStream.Length;
+            while (pos < tam)
+            {
+                content2= readBin.ReadBytes(1024);
+                UInt32 mftSig = BitConverter.ToUInt32(content2, 0);
+                if (mftSig != FILE_SIG)
+                {
+                    pos += 1024;
+                    continue;
+                } //no valid record
+                infoMFT = new MFT_ENTRY(content2);
+                if (!infoMFT.recordValido)
+                {
+                    pos += 1024;
+                    continue;
+                }
+                if (infoMFT.fileReferenceToBaseFile == 0) //Comprobacion para casos donde el nombre FN no está en el record base
+                {
+                    try
+                    {
+                        GetCoinciDetallesInfo(infoMFT);
+                        infoMFT.MFT_SHOW_DATA_TL();
+                    }
+                    catch
+                    {
+                    }
+                }
+                pos += 1024;
+            }
         }
 
         public static void BuscaTodosADSs(UInt64 mftOffset) //
         {
             if (CommandLine["o"] != null)
             {
-                // mftFileArray ya está en memoria al hacer el diccionario
-                uint runLength_2 = ((uint)mftFileArray.Length) / 1024;
+                int pos = 0;
+                tam = (int)readBin.BaseStream.Length;
                 byte[] content2 = new byte[1024];
-                for (int n = 0; n < runLength_2; n++)
+                while (pos < tam)
                 {
-                    Array.Copy(mftFileArray, n * 1024, content2, 0, 1024);
+                    content2 = readBin.ReadBytes(1024);
                     UInt32 mftSig = BitConverter.ToUInt32(content2, 0);
-                    if (mftSig != FILE_SIG) { continue; } //no valid record
+                    if (mftSig != FILE_SIG)
+                    {
+                        pos += 1024;
+                        continue; //no valid record
+                    }
                     MFT_ENTRY infoMFT = new MFT_ENTRY(content2);
                     if (!infoMFT.recordValido)
                     {
                         Console.WriteLine("I omit record {0}: has a wrong fixup value", infoMFT.recordNumber);
+                        pos += 1024;
                         continue;
                     }
                     infoMFT.MFT_NEXT_ATTRIBUTE();
@@ -592,11 +655,11 @@ Examples:
                         }
                         infoMFT.MFT_NEXT_ATTRIBUTE();
                     }
+                    pos += 1024;
                 }
             }
             else
             {
-                // Lo creo solo con la MFT
                 MFT_ENTRY mftEntry = new MFT_ENTRY(ReadRaw(mftOffset, 1024));
                 while (mftEntry.attributeSig != DATA_SIG)
                 {
@@ -694,29 +757,26 @@ Examples:
         {
             if (CommandLine["o"] != null)
             {
-                // mftFileArray ya está en memoria al hacer el diccionario
-                uint runLength_2 = ((uint)mftFileArray.Length) / 1024;
+                int pos = 0;
+                tam = (int)readBin.BaseStream.Length;
                 byte[] content2 = new byte[1024];
-                for (int n = 0; n < runLength_2; n++)
+                while (pos < tam)
                 {
-                    Array.Copy(mftFileArray, n * 1024, content2, 0, 1024);
+                    content2 = readBin.ReadBytes(1024);
                     UInt32 mftSig = BitConverter.ToUInt32(content2, 0);
-                    if (mftSig != FILE_SIG) { continue; } //no valid record
+                    if (mftSig != FILE_SIG)
+                    {
+                        pos += 1024;
+                        continue; //no valid record
+                    }
                     MFT_ENTRY infoMFT = new MFT_ENTRY(content2);
                     if (!infoMFT.recordValido)
                     {
                         Console.WriteLine("I omit record {0}: has a wrong fixup value", infoMFT.recordNumber);
+                        pos += 1024;
                         continue;
                     }
-                    ////No pierdo acentos ni ñ y tarda 5 sg.. En UTF7 también conserva acentos y ñ.
                     string cadenaRawa = Encoding.Default.GetString(content2).Replace("\0", "").ToLower(); //Al menos quito los 0
-                    ////La sustitucion con el regex hacía perder acentos y la ñ, y tardaba >50 sg.
-                    //string cadenaRaw = (Regex.Replace(Encoding.Default.GetString(entryInfo), @"[^\u001F-\u00AF]", string.Empty)).ToLowerInvariant(); //Console.WriteLine(offsetBytesMFT.ToString("X"));
-                    //
-                    // Según parece es más rápido http://cc.davelozinski.com/c-sharp/fastest-way-to-check-if-a-string-occurs-within-a-string 
-                    //(((infoMFT.nombres.Length - (infoMFT.nombres.Replace(nombreBuscado.ToLower(), String.Empty)).Length) / nombreBuscado.Length) > 0)
-                    // que hacer:
-                    //if (infoMFT.nombres.Contains(nombreBuscado.ToLower()))
                     if (((cadenaRawa.Length - (cadenaRawa.ToLower().Replace(cadeBuscada.ToLower(), String.Empty)).Length) / cadeBuscada.Length) > 0)
                     {
                         if (infoMFT.fileReferenceToBaseFile == 0) //Comprobacion para casos donde hay record base
@@ -734,8 +794,8 @@ Examples:
                             }
                         }
                     }
+                    pos += 1024;
                 }
-                content2 = null;
             }
             else
             {
@@ -768,15 +828,7 @@ Examples:
                                 Console.WriteLine("I omit record {0}: has a wrong fixup value", infoMFT.recordNumber);
                                 continue;
                             }
-                            ////No pierdo acentos ni ñ y tarda 5 sg.. En UTF7 también conserva acentos y ñ.
                             string cadenaRawa = Encoding.Default.GetString(entryInfo).Replace("\0", "").ToLower(); //Al menos quito los 0
-                            ////La sustitucion con el regex hacía perder acentos y la ñ, y tardaba >50 sg.
-                            //string cadenaRaw = (Regex.Replace(Encoding.Default.GetString(entryInfo), @"[^\u001F-\u00AF]", string.Empty)).ToLowerInvariant(); //Console.WriteLine(offsetBytesMFT.ToString("X"));
-                            //
-                            // Según parece es más rápido http://cc.davelozinski.com/c-sharp/fastest-way-to-check-if-a-string-occurs-within-a-string 
-                            //(((infoMFT.nombres.Length - (infoMFT.nombres.Replace(nombreBuscado.ToLower(), String.Empty)).Length) / nombreBuscado.Length) > 0)
-                            // que hacer:
-                            //if (infoMFT.nombres.Contains(nombreBuscado.ToLower()))
                             if (((cadenaRawa.Length - (cadenaRawa.ToLower().Replace(cadeBuscada.ToLower(), String.Empty)).Length) / cadeBuscada.Length) > 0)
                             {
                                 if (infoMFT.fileReferenceToBaseFile == 0) //Comprobacion para casos donde hay record base
@@ -828,9 +880,41 @@ Examples:
                     {
                         if (buscadasList.Count != 0)
                         {
-                            //Console.WriteLine("COMIENZA BuscaCoincidencias: " + DateTime.Now);
                             BuscaCoincidencias(dataRunlist.runLength, dataRunlist.offsetBytesMFT, buscadasList);
-                            //Console.WriteLine("FIN de BuscaCoincidencias: " + DateTime.Now);
+                        }
+                    }
+                    dataRunlist.NEXTDATARUNLIST(mftEntry.rawRecord[dataRunlist.runlistOffset]);
+                }
+            }
+            Console.WriteLine("Total: {0}\n", refCoincid.Count);
+            GetCoinciDetalles();
+        }
+
+        public static void BuscaCadenasO(UInt64 mftOffset, List<string> buscadasList = null, string recordMFT = "") //
+        {
+            if (CommandLine["o"] != null)
+            {
+                BuscaCoincidenciasO(0, 0, buscadasList);
+                readBin.BaseStream.Seek(0, SeekOrigin.Begin);
+            }
+            else
+            {
+                MFT_ENTRY mftEntry = new MFT_ENTRY(ReadRaw(mftOffset, 1024));
+                while (mftEntry.attributeSig != DATA_SIG)
+                {
+                    mftEntry.offsetToAttribute += mftEntry.attributeLength;
+                    mftEntry.attributeSig = BitConverter.ToUInt32(mftEntry.rawRecord, mftEntry.offsetToAttribute);
+                    mftEntry.attributeLength = BitConverter.ToInt16(mftEntry.rawRecord, mftEntry.offsetToAttribute + 4);
+                }
+                GETDATARUNLIST dataRunlist = new GETDATARUNLIST(mftEntry);
+                while (dataRunlist.runlist != (byte)(0x00))
+                {
+                    dataRunlist.GETCLUSTERS(mftEntry);
+                    if (!dataRunlist.isSparse)
+                    {
+                        if (buscadasList.Count != 0)
+                        {
+                            BuscaCoincidencias(dataRunlist.runLength, dataRunlist.offsetBytesMFT, buscadasList);
                         }
                     }
                     dataRunlist.NEXTDATARUNLIST(mftEntry.rawRecord[dataRunlist.runlistOffset]);
@@ -845,7 +929,10 @@ Examples:
             if ((CommandLine["o"] != null) || (CommandLine["tl"] != null))
             {
                 byte[] buffer = new byte[numBytesToRead];
-                Array.Copy(mftFileArray, (long)_offset, buffer, 0, numBytesToRead);
+                long prevPos = readBin.BaseStream.Position;
+                readBin.BaseStream.Position = (long)_offset;
+                readBin.Read(buffer, 0, (int)numBytesToRead);
+                readBin.BaseStream.Position = prevPos;
                 return buffer;
             }
             else
@@ -919,20 +1006,20 @@ Examples:
         {
             if ((CommandLine["o"] != null) || (mftFileArray != null))
             {
-                try {
-                    if (mftFileArray == null)
-                    {
-                        mftFileArray = File.ReadAllBytes(mftFile);
-                    }
-                    uint runLength_2 = ((uint)mftFileArray.Length) / 1024;
+                try
+                {
+                    int pos = 0;
+                    tam = (int)readBin.BaseStream.Length;
                     byte[] content2 = new byte[1024];
-                    for (int n = 0; n < runLength_2; n++)
+                    while (pos < tam)
                     {
+                        content2 = readBin.ReadBytes(1024);
                         string nombre = " ";
                         UInt32 parentDirectory = 0;
-                        Array.Copy(mftFileArray, n * 1024, content2, 0, 1024);
                         UInt32 mftSig = BitConverter.ToUInt32(content2, 0);
-                        if (mftSig != FILE_SIG) { continue; } //no valid record
+                        if (mftSig != FILE_SIG) {
+                            pos += 1024;
+                            continue; } //no valid record
                         MFT_ENTRY infoMFT = new MFT_ENTRY(content2);
                         infoMFT.MFT_NEXT_ATTRIBUTE();
                         while (infoMFT.attributeSig != END_RECORD_SIG)
@@ -954,17 +1041,15 @@ Examples:
                         {
                             if (GetPath.soloMFTDictOffsets.ContainsKey(infoMFT.recordNumber))
                             {
-                                //ya existe
                                 string nNombre = GetPath.soloMFTDictOffsets[infoMFT.recordNumber].Name.Length < nombre.Length ? nombre : GetPath.soloMFTDictOffsets[infoMFT.recordNumber].Name;
                                 UInt32 nparentDirectory = parentDirectory == 0 ? GetPath.soloMFTDictOffsets[infoMFT.recordNumber].ParentFrn : 0;
-                                GetPath.FileNameAndParentFrn actualizar = new GetPath.FileNameAndParentFrn(nNombre, parentDirectory, Convert.ToUInt64(1024 * n));
+                                GetPath.FileNameAndParentFrn actualizar = new GetPath.FileNameAndParentFrn(nNombre, parentDirectory, Convert.ToUInt64(pos));
                                 GetPath.soloMFTDictOffsets.Remove(infoMFT.recordNumber);
                                 GetPath.soloMFTDictOffsets.Add(infoMFT.recordNumber, actualizar);
-
                             }
                             else
                             {
-                                GetPath.FileNameAndParentFrn f = new GetPath.FileNameAndParentFrn(nombre, parentDirectory, Convert.ToUInt64(1024 * n));
+                                GetPath.FileNameAndParentFrn f = new GetPath.FileNameAndParentFrn(nombre, parentDirectory, Convert.ToUInt64(pos));
                                 GetPath.soloMFTDictOffsets.Add(infoMFT.recordNumber, f);
                             }
                         }
@@ -978,20 +1063,16 @@ Examples:
                             {
                                 listaRecordHijos.Add(infoMFT.fileReferenceToBaseFile, new List<UInt32> { infoMFT.recordNumber });
                             }
-                            //agrego este record
-                            GetPath.FileNameAndParentFrn f = new GetPath.FileNameAndParentFrn("Metadata/System File", 1, Convert.ToUInt64(1024 * n));
+                            GetPath.FileNameAndParentFrn f = new GetPath.FileNameAndParentFrn("Metadata/System File", 1, Convert.ToUInt64(pos));
                             GetPath.soloMFTDictOffsets.Add(infoMFT.recordNumber, f);
-                            //agrego el record del que desciende
                             if (GetPath.soloMFTDictOffsets.ContainsKey(infoMFT.fileReferenceToBaseFile))
                             {
-                                //ya existe
                                 string nNombre = GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].Name.Length < nombre.Length ? nombre : GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].Name;
                                 UInt64 nOffset = GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].RecordOffset != 0 ? GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].RecordOffset : 0;
                                 UInt32 nparentDirectory = parentDirectory == 0 ? GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].ParentFrn : parentDirectory;
                                 GetPath.FileNameAndParentFrn actualizar = new GetPath.FileNameAndParentFrn(nNombre, nparentDirectory, nOffset);
                                 GetPath.soloMFTDictOffsets.Remove(infoMFT.fileReferenceToBaseFile);
                                 GetPath.soloMFTDictOffsets.Add(infoMFT.fileReferenceToBaseFile, actualizar);
-
                             }
                             else
                             {
@@ -999,12 +1080,13 @@ Examples:
                                 GetPath.soloMFTDictOffsets.Add(infoMFT.fileReferenceToBaseFile, actualizar);
                             }
                         }
+                        pos += 1024;
                     }
-                    //Hay que modificar el root que apunta a si mismo
                     GetPath.FileNameAndParentFrn actualizarRoot = new GetPath.FileNameAndParentFrn("\\\\", 0, GetPath.soloMFTDictOffsets[5].RecordOffset);
                     GetPath.soloMFTDictOffsets.Remove(5);
                     GetPath.soloMFTDictOffsets.Add(5, actualizarRoot);
                     Console.WriteLine("\n{0} records in the MFT.", GetPath.soloMFTDictOffsets.Count.ToString("N0"));
+                    readBin.BaseStream.Seek(0, SeekOrigin.Begin);
                 }
                 catch (Exception e)
                 {
@@ -1059,7 +1141,6 @@ Examples:
                             {
                                 if (GetPath.soloMFTDictOffsets.ContainsKey(infoMFT.recordNumber))
                                 {
-                                    //ya existe
                                     string nNombre = GetPath.soloMFTDictOffsets[infoMFT.recordNumber].Name.Length < nombre.Length ? nombre : GetPath.soloMFTDictOffsets[infoMFT.recordNumber].Name;
                                     UInt32 nparentDirectory = parentDirectory == 0 ? GetPath.soloMFTDictOffsets[infoMFT.recordNumber].ParentFrn : 0;
                                     GetPath.FileNameAndParentFrn actualizar = new GetPath.FileNameAndParentFrn(nNombre, parentDirectory, dataRunlist.offsetBytesMFT + Convert.ToUInt64(1024 * n));
@@ -1083,13 +1164,10 @@ Examples:
                                 {
                                     listaRecordHijos.Add(infoMFT.fileReferenceToBaseFile, new List<UInt32> { infoMFT.recordNumber });
                                 }
-                                //agrego este record
                                 GetPath.FileNameAndParentFrn f = new GetPath.FileNameAndParentFrn("Metadata/System File", 1, dataRunlist.offsetBytesMFT + Convert.ToUInt64(1024 * n));
                                 GetPath.soloMFTDictOffsets.Add(infoMFT.recordNumber, f);
-                                //agrego el record del que desciende
                                 if (GetPath.soloMFTDictOffsets.ContainsKey(infoMFT.fileReferenceToBaseFile))
                                 {
-                                    //ya existe
                                     string nNombre = GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].Name.Length < nombre.Length ? nombre : GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].Name;
                                     UInt64 nOffset = GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].RecordOffset != 0 ? GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].RecordOffset : 0;
                                     UInt32 nparentDirectory = parentDirectory == 0 ? GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].ParentFrn : parentDirectory;
@@ -1109,13 +1187,13 @@ Examples:
                     }
                     dataRunlist.NEXTDATARUNLIST(mftEntry.rawRecord[dataRunlist.runlistOffset]);
                 }
-                //Hay que modificar el root que apunta a si mismo
                 GetPath.FileNameAndParentFrn actualizarRoot = new GetPath.FileNameAndParentFrn("\\\\", 0, GetPath.soloMFTDictOffsets[5].RecordOffset );
                 GetPath.soloMFTDictOffsets.Remove(5);
                 GetPath.soloMFTDictOffsets.Add(5, actualizarRoot);
                 Console.WriteLine("\n{0} records in the MFT.", GetPath.soloMFTDictOffsets.Count.ToString("N0"));
             }
         }
+
 
         public static void BuscaMFTRecord(string referenceBuscada) //
         {
@@ -1145,9 +1223,7 @@ Examples:
                                 Int16 prevAttributeLength = infoRecord.attributeLength;
                                 Int32 prevOffsetToAttribute = infoRecord.offsetToAttribute;
                                 infoRecord.attributeLength = infoRecord.attributeContentOffset;
-                                //////////********************
                                 ProcessAttrListParaCopia(infoRecord, Convert.ToInt32(infoRecord.attributeContentLength), attIDBuscado, ref nombreArch);
-                                /////////********************
                                 infoRecord.attributeLength = prevAttributeLength;
                                 infoRecord.attributeSig = 0x20;
                                 infoRecord.offsetToAttribute = prevOffsetToAttribute;
@@ -1173,7 +1249,6 @@ Examples:
                                     }
                                     dataRunlist.NEXTDATARUNLIST(attListNoResident.rawRecord[dataRunlist.runlistOffset]);
                                 }
-                                //Restauro los valores modificados
                                 infoRecord.rawRecord = prevRawRecord;
                                 infoRecord.attributeLength = prevAttributeLength;
                                 infoRecord.attributeSig = 0x20;
@@ -1207,7 +1282,6 @@ Examples:
                                         }
                                         else
                                         {
-                                            //Console.WriteLine("El archivo es residente.");
                                             infoRecordDatarun.GET_RESIDENT_DATA();
                                             byte[] dataResidente = new byte[infoRecordDatarun.attributeContentLength];
                                             Array.Copy(infoRecordDatarun.rawRecord, infoRecordDatarun.offsetToAttribute + infoRecordDatarun.attributeContentOffset, dataResidente, 0, infoRecordDatarun.attributeContentLength);
@@ -1243,7 +1317,6 @@ Examples:
                                 }
                                 else
                                 {
-                                    //Console.WriteLine("El archivo es residente.");
                                     infoRecord.GET_RESIDENT_DATA();
                                     byte[] dataResidente = new byte[infoRecord.attributeContentLength];
                                     Array.Copy(infoRecord.rawRecord, infoRecord.offsetToAttribute + infoRecord.attributeContentOffset, dataResidente, 0, infoRecord.attributeContentLength);
@@ -1262,9 +1335,6 @@ Examples:
                 {
                     switch (infoRecord.valFileFlags)
                     {
-                        //case 0:
-                        //    Console.WriteLine("\nNot suported: deleted file");
-                        //    break;
                         case 2:
                             Console.WriteLine("\nNot suported: deleted directory.");
                             break;
@@ -1323,7 +1393,6 @@ Examples:
                             count += 1;
                             buscados = null;
                             if (count == 10) { GC.Collect(2); } //Experimentalmente parece que acumula al llegar a esta repeticion
-                            // large objects belong to generation 2: https://msdn.microsoft.com/en-us/magazine/cc534993.aspx
                         }
                         buscados = null;
                         byte[] buscadoUlt = ReadRaw(dataRunlist.offsetBytesMFT + offsetParcial, dataRunlist.runLength * bytesxCluster);
@@ -1343,7 +1412,6 @@ Examples:
                     else //Voy a escribir  solo lo que diga el tamaño y no lo que diga el runlist porque hay sparse que no es del tipo 0X
                     { //Lo que queda es menor que este runlist luego hay sparse o el último cluster no está lleno
                         UInt64 pendiente = sizeArchivo - llevoCopiado;
-                        //UInt64 aux = Convert.ToUInt64(trozos);
                         UInt64 offsetParcial = 0;
                         byte[] buscados = new byte[sizeCachos * bytesxCluster];
                         while (trozos < pendiente) // Copia de archivos enormes en trozos de 250 Mb
@@ -1362,12 +1430,10 @@ Examples:
                             {
                                 File.WriteAllBytes(nombreArch, buscados);
                             }
-                            //aux = aux + trozos;
                             pendiente = pendiente - trozos;
                             count += 1;
                             buscados = null;
                             if (count == 10) { GC.Collect(2); } //Experimentalmente parece que acumula al llegar a esta repeticion
-                            // large objects belong to generation 2: https://msdn.microsoft.com/en-us/magazine/cc534993.aspx
                         }
                         buscados = null;
                         UInt64 remanente = pendiente % bytesxCluster;
@@ -1385,7 +1451,6 @@ Examples:
                         {
                             File.WriteAllBytes(nombreArch, buscadoUltCluster);
                         }
-                        //Del último cluster
                         byte[] buscadoUltClusterResto = ReadRaw(ultimoClusterOffset, bytesxCluster);
                         if (sizeArchivo != 0)
                         {
@@ -1432,7 +1497,6 @@ Examples:
                         Int16 intprevAttributeLength = infoRecord.attributeLength;
                         Int32 intprevOffsetToAttribute = infoRecord.offsetToAttribute;
                         GetPath.FileNameAndParentFrn localiza = GetPath.soloMFTDictOffsets[attRecordNumber];
-                        //***
                         byte[] referenceRecord = ReadRaw(localiza.RecordOffset, 1024);
                         MFT_ENTRY entryData = new MFT_ENTRY(referenceRecord);
                         entryData.MFT_NEXT_ATTRIBUTE();
@@ -1478,7 +1542,6 @@ Examples:
                         {
                             diccDatosCopia[infoRecord.attrListStartVCN].sizeCopiar = entryData.realFileSize;
                         }
-                        //***
                         infoRecord.attributeLength = intprevAttributeLength;
                         infoRecord.attributeSig = 0x30;
                         infoRecord.offsetToAttribute = intprevOffsetToAttribute;
@@ -1514,16 +1577,10 @@ Examples:
                     Console.WriteLine("I omit record {0}: has a wrong fixup value", infoMFT.recordNumber);
                     continue;
                 }
-                //Console.WriteLine(offsetBytesMFT.ToString("X"));
-                // Según parece es más rápido http://cc.davelozinski.com/c-sharp/fastest-way-to-check-if-a-string-occurs-within-a-string 
-                //(((infoMFT.nombres.Length - (infoMFT.nombres.Replace(nombreBuscado.ToLower(), String.Empty)).Length) / nombreBuscado.Length) > 0)
-                // que hacer:
-                //if (infoMFT.nombres.Contains(nombreBuscado.ToLower()))
                 BuscaCoincidenciasInfo(infoMFT);
                 bool result = false;
                 foreach (string nombreBuscado in buscadasList)
                 {
-                    //Comprueba si tiene path como filtro
                     bool incluyePath = false;
                     string pathBuscado = "";
                     string nombreArchivo = nombreBuscado;
@@ -1535,7 +1592,6 @@ Examples:
                         pathBuscado = auxNombreBuscado.Substring(0, auxNombreBuscado.LastIndexOf("\\")).ToLower();
                         nombreArchivo = auxNombreBuscado.Substring(auxNombreBuscado.LastIndexOf("\\") + 1, auxNombreBuscado.Length - auxNombreBuscado.LastIndexOf("\\") - 1);
                     }
-                    // Para las busquedas de directorios
                     int countSubdirs = nombreBuscado.Split('\\').Length - 1 + recursion;
                     for (int i = 0; i < infoMFT.nombreFN.Count; i++)
                     {
@@ -1547,7 +1603,6 @@ Examples:
                             {
                                 bool pathCorrecto = false;
                                 string pathNombre = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).ToLower();
-                                // Para que salga el propio directorio coincidente hay que sumar uno en la primera comprobación (le faltaria el \ final)
                                 if ((newNombreBuscado.Split('\\').Length <= (pathNombre.Split('\\').Length)+1) & ((pathNombre.Split('\\').Length - 1) <= countSubdirs))
                                 {
                                     newNombreBuscado = newNombreBuscado + "\\";
@@ -1634,7 +1689,6 @@ Examples:
                             {
                                 bool pathCorrecto = false;
                                 string pathNombre = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).ToLower();
-                                // Para que salga el directorio coincidente hay que sumar 1 en la primera comprobación (le falta un \ final)
                                 if ((nombreBuscado.Split('\\').Length <= (pathNombre.Split('\\').Length+1)) & ((pathNombre.Split('\\').Length - 1) <= countSubdirs))
                                 {
                                     if (pathNombre == "\\\\")
@@ -1678,7 +1732,6 @@ Examples:
                                     {
                                         nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
                                         if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0)
-                                        //if (nombPath.StartsWith(pathBuscado))
                                         {
                                             pathCorrecto = true;
                                         }
@@ -1730,7 +1783,6 @@ Examples:
                                     {
                                         nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
                                         if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0)
-                                        //if (nombPath.StartsWith(pathBuscado))
                                         {
                                             pathCorrecto = true;
                                         }
@@ -1775,7 +1827,6 @@ Examples:
                                     {
                                         nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
                                         if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0)
-                                        //if (nombPath.StartsWith(pathBuscado))
                                         {
                                             pathCorrecto = true;
                                         }
@@ -1818,11 +1869,330 @@ Examples:
             runActualMFT = null;
         }
 
+        public static void BuscaCoincidenciasO(uint runLength, UInt64 offsetBytesMFT, List<string> buscadasList) //
+        {
+            byte[] entryInfo = new byte[1024];
+            int pos = 0;
+            while (pos < tam)
+            {
+                entryInfo= readBin.ReadBytes(1024);
+                UInt32 mftSig = BitConverter.ToUInt32(entryInfo, 0);
+                if (mftSig != FILE_SIG)
+                {
+                    pos += 1024;
+                    continue;
+                }
+                MFT_ENTRY infoMFT = new MFT_ENTRY(entryInfo);
+                if (!infoMFT.recordValido)
+                {
+                    Console.WriteLine("I omit record {0}: has a wrong fixup value", infoMFT.recordNumber);
+                    pos += 1024;
+                    continue;
+                }
+                BuscaCoincidenciasInfo(infoMFT);
+                bool result = false;
+                foreach (string nombreBuscado in buscadasList)
+                {
+                    bool incluyePath = false;
+                    string pathBuscado = "";
+                    string nombreArchivo = nombreBuscado;
+                    string nombPath = "";
+                    string auxNombreBuscado = nombreBuscado;
+                    if (auxNombreBuscado.LastIndexOf("\\") > 1)  //<-----------------------------------OJO ------------------------------------
+                    {
+                        incluyePath = true;
+                        pathBuscado = auxNombreBuscado.Substring(0, auxNombreBuscado.LastIndexOf("\\")).ToLower();
+                        nombreArchivo = auxNombreBuscado.Substring(auxNombreBuscado.LastIndexOf("\\") + 1, auxNombreBuscado.Length - auxNombreBuscado.LastIndexOf("\\") - 1);
+                    }
+                    int countSubdirs = nombreBuscado.Split('\\').Length - 1 + recursion;
+                    for (int i = 0; i < infoMFT.nombreFN.Count; i++)
+                    {
+                        if (result) { break; }
+                        if (auxNombreBuscado.EndsWith("<"))
+                        {
+                            string newNombreBuscado = nombreBuscado.Replace("<", String.Empty);
+                            if (CommandLine["fd"] != null)
+                            {
+                                bool pathCorrecto = false;
+                                string pathNombre = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).ToLower();
+                                if ((newNombreBuscado.Split('\\').Length <= (pathNombre.Split('\\').Length) + 1) & ((pathNombre.Split('\\').Length - 1) <= countSubdirs))
+                                {
+                                    newNombreBuscado = newNombreBuscado + "\\";
+                                    if (pathNombre == "\\\\")
+                                    {
+                                        pathNombre = pathNombre + infoMFT.nombreFN[i] + "\\";
+                                    }
+                                    else
+                                    {
+                                        pathNombre = pathNombre + "\\" + infoMFT.nombreFN[i] + "\\";
+                                    }
+                                    if (((pathNombre.Length - (pathNombre.ToLower().Replace(newNombreBuscado.ToLower(), String.Empty)).Length) / newNombreBuscado.Length) > 0)
+                                    {
+                                        pathCorrecto = true;
+                                    }
+                                    if (pathCorrecto)
+                                    {
+                                        result = true;
+                                        if (infoMFT.fileReferenceToBaseFile == 0) //Comprobacion para casos donde el nombre FN no está en el record base
+                                        {
+                                            if (!refCoincid.Contains(infoMFT.recordNumber))
+                                            {
+                                                refCoincid.Add(infoMFT.recordNumber);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (!refCoincid.Contains(infoMFT.fileReferenceToBaseFile))
+                                            {
+                                                refCoincid.Add(infoMFT.fileReferenceToBaseFile);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                if (infoMFT.nombreFN[i].ToLower() == nombreArchivo.Replace("<", String.Empty).ToLower())
+                                {
+                                    bool pathCorrecto = false;
+                                    if (incluyePath)
+                                    {
+                                        nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
+                                        if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0)
+                                        {
+                                            pathCorrecto = true;
+                                        }
+                                    }
+                                    else pathCorrecto = true;
+                                    if (pathCorrecto)
+                                    {
+                                        result = true;
+                                        if (infoMFT.valFileFlags != 0) // el archivo no esta borrado
+                                        {
+                                            if (infoMFT.fileReferenceToBaseFile == 0) //Comprobacion para casos donde el nombre FN no está en el record base
+                                            {
+                                                if (!refCoincid.Contains(infoMFT.recordNumber))
+                                                {
+                                                    refCoincid.Add(infoMFT.recordNumber);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (!refCoincid.Contains(infoMFT.fileReferenceToBaseFile))
+                                                {
+                                                    refCoincid.Add(infoMFT.fileReferenceToBaseFile);
+                                                }
+                                            }
+                                        }
+                                        else // archivo borrado y la info de referencia es cuestionable
+                                        {
+                                            if (!refCoincid.Contains(infoMFT.recordNumber))
+                                            {
+                                                refCoincid.Add(infoMFT.recordNumber);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (CommandLine["fd"] != null)
+                            {
+                                bool pathCorrecto = false;
+                                string pathNombre = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).ToLower();
+                                if ((nombreBuscado.Split('\\').Length <= (pathNombre.Split('\\').Length + 1)) & ((pathNombre.Split('\\').Length - 1) <= countSubdirs))
+                                {
+                                    if (pathNombre == "\\\\")
+                                    {
+                                        pathNombre = pathNombre + infoMFT.nombreFN[i];
+                                    }
+                                    else
+                                    {
+                                        pathNombre = pathNombre + "\\" + infoMFT.nombreFN[i];
+                                    }
+                                    if (((pathNombre.Length - (pathNombre.ToLower().Replace(nombreBuscado.ToLower(), String.Empty)).Length) / nombreBuscado.Length) > 0)
+                                    {
+                                        pathCorrecto = true;
+                                    }
+                                    if (pathCorrecto)
+                                    {
+                                        result = true;
+                                        if (infoMFT.fileReferenceToBaseFile == 0) //Comprobacion para casos donde el nombre FN no está en el record base
+                                        {
+                                            if (!refCoincid.Contains(infoMFT.recordNumber))
+                                            {
+                                                refCoincid.Add(infoMFT.recordNumber);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (!refCoincid.Contains(infoMFT.fileReferenceToBaseFile))
+                                            {
+                                                refCoincid.Add(infoMFT.fileReferenceToBaseFile);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                if (((infoMFT.nombreFN[i].Length - (infoMFT.nombreFN[i].ToLower().Replace(nombreArchivo.ToLower(), String.Empty)).Length) / nombreArchivo.Length) > 0)
+                                {
+                                    bool pathCorrecto = false;
+                                    if (incluyePath)
+                                    {
+                                        nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
+                                        if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0)
+                                        {
+                                            pathCorrecto = true;
+                                        }
+                                    }
+                                    else pathCorrecto = true;
+                                    if (pathCorrecto)
+                                    {
+                                        result = true;
+                                        if (infoMFT.valFileFlags != 0) // el archivo no esta borrado
+                                        {
+                                            if (infoMFT.fileReferenceToBaseFile == 0) //Comprobacion para casos donde el nombre FN no está en el record base
+                                            {
+                                                if (!refCoincid.Contains(infoMFT.recordNumber))
+                                                {
+                                                    refCoincid.Add(infoMFT.recordNumber);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (!refCoincid.Contains(infoMFT.fileReferenceToBaseFile))
+                                                {
+                                                    refCoincid.Add(infoMFT.fileReferenceToBaseFile);
+                                                }
+                                            }
+                                        }
+                                        else // archivo borrado y la info de referencia es cuestionable
+                                        {
+                                            if (!refCoincid.Contains(infoMFT.recordNumber))
+                                            {
+                                                refCoincid.Add(infoMFT.recordNumber);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (!result)
+                    {
+                        foreach (var datas in infoMFT.diccIDDataADSInfo)
+                        {
+                            if (nombreArchivo.EndsWith("<"))
+                            {
+                                string newNombreBuscado = nombreArchivo.Replace("<", String.Empty);
+                                if (datas.Value.name.ToLower() == newNombreBuscado.ToLower())
+                                {
+                                    bool pathCorrecto = false;
+                                    if (incluyePath)
+                                    {
+                                        nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
+                                        if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0)
+                                        {
+                                            pathCorrecto = true;
+                                        }
+                                    }
+                                    else pathCorrecto = true;
+                                    if (pathCorrecto)
+                                    {
+                                        result = true;
+                                        if (infoMFT.valFileFlags != 0) // el archivo no esta borrado
+                                        {
+                                            if (infoMFT.fileReferenceToBaseFile == 0) //Comprobacion para casos donde el nombre no está en el record base
+                                            {
+                                                if (!refCoincid.Contains(infoMFT.recordNumber))
+                                                {
+                                                    refCoincid.Add(infoMFT.recordNumber);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (!refCoincid.Contains(infoMFT.fileReferenceToBaseFile))
+                                                {
+                                                    refCoincid.Add(infoMFT.fileReferenceToBaseFile);
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (!refCoincid.Contains(infoMFT.recordNumber))
+                                            {
+                                                refCoincid.Add(infoMFT.recordNumber);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                if (((datas.Value.name.Length - (datas.Value.name.ToLower().Replace(nombreArchivo.ToLower(), String.Empty)).Length) / nombreArchivo.Length) > 0)
+                                {
+                                    bool pathCorrecto = false;
+                                    if (incluyePath)
+                                    {
+                                        nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
+                                        if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0)
+                                        {
+                                            pathCorrecto = true;
+                                        }
+                                    }
+                                    else pathCorrecto = true;
+                                    if (pathCorrecto)
+                                    {
+                                        result = true;
+                                        if (infoMFT.valFileFlags != 0) // el archivo no esta borrado
+                                        {
+                                            if (infoMFT.fileReferenceToBaseFile == 0) //Comprobacion para casos donde el nombre no está en el record base
+                                            {
+                                                if (!refCoincid.Contains(infoMFT.recordNumber))
+                                                {
+                                                    refCoincid.Add(infoMFT.recordNumber);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (!refCoincid.Contains(infoMFT.fileReferenceToBaseFile))
+                                                {
+                                                    refCoincid.Add(infoMFT.fileReferenceToBaseFile);
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (!refCoincid.Contains(infoMFT.recordNumber))
+                                            {
+                                                refCoincid.Add(infoMFT.recordNumber);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                pos += 1024;
+            }
+        }
+
         public static void GetCoinciDetalles() //
         {
             if (CommandLine.Parameters.ContainsKey("t"))
             {
-                Console.WriteLine("\nFiletime,[MACB],filename,record,size");
+                if (!CommandLine.Parameters.ContainsKey("x"))
+                {
+                    Console.WriteLine("\nFiletime,[MACB],filename,record,size");
+                }
+                else
+                {
+                    writer.WriteLine("Filetime\t[MACB]\tfilename\trecord\tsize");
+                }
             }
             foreach (UInt32 entryCoincid in refCoincid)
             {
@@ -1922,7 +2292,6 @@ Examples:
             public byte[] rawRecord = new byte[1024];
             public UInt32 mftSig;
             public byte[] mftSeqN = new byte[2];
-            //public string nombres;
             public Int32 offsetToAttribute;
             public Int16 valFileFlags;
             public string fileFlags;
@@ -1933,7 +2302,6 @@ Examples:
             public Int16 attributeLength = 0;
             public byte attributeIsResident;
             public Int16 attributeNameLength;
-            //public bool attributeIsAds;
             public Int16 attributeNameOffset;
             public UInt16 attributeID;
             public Int16 attributeContentLength;
@@ -1949,14 +2317,13 @@ Examples:
             public List<string> dateAccessed_FN = new List<string>();
             public List<string> nombreFN = new List<string>();
             public Dictionary<string,string> deduplicarFNtimeline = new Dictionary<string,string>();
-            //public List<int> tipoNombreFN = new List<int>(); //No va. He encontrado tipos repetidos y deben ser únicos
             public UInt64 realFileSize = 0;
             public UInt64 diskFileSize = 0;
             public string dataBase = "";
             public Dictionary<string,dataADSInfo> diccIDDataADSInfo = new Dictionary<string, dataADSInfo>();
             public UInt64 attrListStartVCN;
-			private char[] macb = "M...".ToCharArray();
-            
+            private char[] macb = "M...".ToCharArray();
+
             private const byte SIG_OFFSET = 0;
             private const byte FIXUP_ARRAY_OFFSET = 4;
             private const byte FIXUP_ARRAY_LENGTH_OFFSET = 6;
@@ -1973,6 +2340,7 @@ Examples:
             private const byte A_ID_OFFSET = 14;
             private const byte A_COL_OFFSET = 16;
             private const byte A_COO_OFFSET = 20;
+
             #endregion vars and constants
             public MFT_ENTRY(byte[] p)
             {
@@ -2011,7 +2379,6 @@ Examples:
                         break;
                 }
                 usedSize = BitConverter.ToInt32(rawRecord, US_OFFSET);
-                //Compruebo y valido por sectores en vez de por el total ¿por que no?
                 if (BitConverter.ToUInt16(fixupSeqArray, 0) == BitConverter.ToUInt16(rawRecord, 510))
                 {
                     Array.Copy(fixupSeqArray, 2, rawRecord, 510, 2);
@@ -2028,15 +2395,12 @@ Examples:
                 if (recordValido) { Array.Resize(ref rawRecord, usedSize); }
                 fileReferenceToBaseFile = BitConverter.ToUInt32(rawRecord, FRTBF_OFFSET);
                 recordNumber = BitConverter.ToUInt32(rawRecord, RN_OFFSET);
-                // Para buscar en bruto y a lo bruto:
-                //nombres = (Regex.Replace(Encoding.Unicode.GetString(rawRecord), @"[^\u001F-\u007F]", string.Empty)).ToLower();
             }
 
             public void MFT_NEXT_ATTRIBUTE()
             {
                 offsetToAttribute += attributeLength;
                 attributeSig = BitConverter.ToUInt32(rawRecord, offsetToAttribute);
-                //No interesa inspeccionar más allá del DATA attribute
                 if (attributeSig <= DATA_SIG)
                 {
                     attributeLength = BitConverter.ToInt16(rawRecord, offsetToAttribute + A_LE_OFFSET);
@@ -2059,9 +2423,8 @@ Examples:
 
             public void MFT_SHOW_DATA()
             {
-                //// Para Solo MFT dictio
                 Dictionary<string, char[]> dictioFechasSI = new Dictionary<string, char[]>();
-                if ((!CommandLine.Parameters.ContainsKey("t")) && (!CommandLine.Parameters.ContainsKey("s")) && (!CommandLine.Parameters.ContainsKey("tl")))
+                if ((!CommandLine.Parameters.ContainsKey("t")) && (!CommandLine.Parameters.ContainsKey("s")))
                 {
                     if (listaRecordHijos.ContainsKey(recordNumber))
                     {
@@ -2081,76 +2444,37 @@ Examples:
                 string longName = "";
                 for (int i = 0; i < nombreFN.Count; i++)
                 {
-                    //Lee el FRN del directorio que lo contiene y busca en el diccionario de USN
                     nombreFN[i] = Path.Combine(GetPath.soloMFTGetFullyQualifiedPath(parentDirectoryFN), nombreFN[i]);
                     if ((valFileFlags == 0) || (valFileFlags == 2))
                     {
                         nombreFN[i] = string.Concat("?", nombreFN[i]);
                     }
-                    if ((!CommandLine.Parameters.ContainsKey("t")) && (!CommandLine.Parameters.ContainsKey("s")) && (!CommandLine.Parameters.ContainsKey("tl")))
+                    if ((!CommandLine.Parameters.ContainsKey("t")) && (!CommandLine.Parameters.ContainsKey("s")))
                     {
-                        //Console.WriteLine("{0}[{1}]{2}",fileFlags, tipoNombreFN[i].ToString(), nombreFN[i]);
                         Console.WriteLine("{0}{1}{2}", fileFlags, "  ", nombreFN[i]);
                     }
                     longName = longName.Length < nombreFN[i].Length ? nombreFN[i] : longName;
                 }
-                if ((!CommandLine.Parameters.ContainsKey("tl")) & (!CommandLine.Parameters.ContainsKey("t")))
+                if (!CommandLine.Parameters.ContainsKey("t"))
                 {
                     if (!CommandLine.Parameters.ContainsKey("s"))
                     {
-                        if (!CommandLine.Parameters.ContainsKey("t"))
+                        Console.WriteLine("SI[MACB]: {0}   {1}   {2}   {3}", dateModificado_SI, dateAccessed_SI, dateMFTModif_SI, dateCreated_SI);
+                        for (int i = 0; i < dateCreated_FN.Count; i++)
                         {
-                            Console.WriteLine("SI[MACB]: {0}   {1}   {2}   {3}", dateModificado_SI, dateAccessed_SI, dateMFTModif_SI, dateCreated_SI);
+                            Console.WriteLine("FN[MACB]: {0}   {1}   {2}   {3}", dateModificado_FN[i], dateAccessed_FN[i], dateMFTModif_FN[i], dateCreated_FN[i]);
                         }
-                        else
-                        {
-                            imprimeFechas(ref dictioFechasSI, "SI", longName, dateModificado_SI, dateAccessed_SI, dateMFTModif_SI, dateCreated_SI);
-                        }
-                        if (!CommandLine.Parameters.ContainsKey("t"))
-                        {
-                            for (int i = 0; i < dateCreated_FN.Count; i++)
-                            {
-                                Console.WriteLine("FN[MACB]: {0}   {1}   {2}   {3}", dateModificado_FN[i], dateAccessed_FN[i], dateMFTModif_FN[i], dateCreated_FN[i]);
-                            }
-                            Console.WriteLine("Reference: {0} [Size: {1} bytes|| Size on disk: {2} bytes]", dataBase, realFileSize.ToString("F0"), diskFileSize.ToString("F0"));
-                        }
-                        else
-                        {
-                            for (int i = 0; i < dateCreated_FN.Count; i++)
-                            {
-                                //El diccionario debe recrearse para cada FN
-                                Dictionary<string, char[]> dictioFechas = new Dictionary<string, char[]>();
-                                imprimeFechas(ref dictioFechas, "FN", longName, dateModificado_FN[i], dateAccessed_FN[i], dateMFTModif_FN[i], dateCreated_FN[i]);
-                            }
-                        }
+                        Console.WriteLine("Reference: {0} [Size: {1} bytes|| Size on disk: {2} bytes]", dataBase, realFileSize.ToString("F0"), diskFileSize.ToString("F0"));
                         if (CommandLine.Parameters.ContainsKey("x") && (fileFlags == "[File]"))
                         {
-                            using (StreamWriter outfile = new StreamWriter(nameOut, true))
-                            {
-                                outfile.Write(dataBase + "\t" + longName + "\n");
-                            }
+                            writer.Write(dataBase + "\t" + longName + "\n");
                         }
                         foreach (var datas in diccIDDataADSInfo)
                         {
-                            if (!CommandLine.Parameters.ContainsKey("t"))
-                            {
-                                Console.WriteLine("[ADS] Name: {0} [Reference: {1} || Size: {2} bytes]", datas.Value.name, datas.Key, datas.Value.size.ToString("F0"));
-                            }
-                            else
-                            {
-                                var enumerator = dictioFechasSI.GetEnumerator();
-                                while (enumerator.MoveNext())
-                                {
-                                    var pair = enumerator.Current;
-                                    Console.WriteLine("{0},SI[{1}],{2}:{3},{4},{5}", pair.Key, new string(pair.Value), longName, datas.Value.name, recordNumber, datas.Value.size.ToString("F0"));
-                                }
-                            }
+                            Console.WriteLine("[ADS] Name: {0} [Reference: {1} || Size: {2} bytes]", datas.Value.name, datas.Key, datas.Value.size.ToString("F0"));
                             if (CommandLine.Parameters.ContainsKey("x"))
                             {
-                                using (StreamWriter outfile = new StreamWriter(nameOut, true))
-                                {
-                                    outfile.Write(datas.Key + "\t" + longName + ":" + datas.Value.name + "\n");
-                                }
+                                writer.Write(datas.Key + "\t" + longName + ":" + datas.Value.name + "\n");
                             }
                         }
                     }
@@ -2165,7 +2489,6 @@ Examples:
                     deduplicarFNtimeline.Clear();
                     for (int i = 0; i < dateCreated_FN.Count; i++)
                     {
-                        //El diccionario debe recrearse para cada FN
                         Dictionary<string, char[]> dictioFechas = new Dictionary<string, char[]>();
                         imprimeFechas(ref dictioFechas, "FN", longName, dateModificado_FN[i], dateAccessed_FN[i], dateMFTModif_FN[i], dateCreated_FN[i]);
                     }
@@ -2175,16 +2498,13 @@ Examples:
                         while (enumerator.MoveNext())
                         {
                             var pair = enumerator.Current;
-                            if (CommandLine.Parameters.ContainsKey("t"))
+                            if (!CommandLine.Parameters.ContainsKey("x"))
                             {
                                 Console.WriteLine("{0},SI[{1}],{2}:{3},{4},{5}", pair.Key, new string(pair.Value), longName, datas.Value.name, recordNumber, datas.Value.size.ToString("F0"));
                             }
                             else
                             {
-                                using (var writer = new StreamWriter(nameOut, true))
-                                {
-                                    writer.WriteLine("{0}\tSI[{1}]\t{2}:{3}\t{4}\t{5}", pair.Key, new string(pair.Value), longName, datas.Value.name, recordNumber, datas.Value.size.ToString("F0"));
-                                }
+                                writer.WriteLine("{0}\tSI[{1}]\t{2}:{3}\t{4}\t{5}", pair.Key, new string(pair.Value), longName, datas.Value.name, recordNumber, datas.Value.size.ToString("F0"));
                             }
                         }
                     }
@@ -2193,12 +2513,10 @@ Examples:
 
             public void MFT_SHOW_DATA_TL()
             {
-                //// Para Solo MFT dictio
                 Dictionary<string, char[]> dictioFechasSI = new Dictionary<string, char[]>();
                 string longName = "";
                 for (int i = 0; i < nombreFN.Count; i++)
                 {
-                    //Lee el FRN del directorio que lo contiene y busca en el diccionario de USN
                     nombreFN[i] = Path.Combine(GetPath.soloMFTGetFullyQualifiedPath(parentDirectoryFN), nombreFN[i]);
                     if ((valFileFlags == 0) || (valFileFlags == 2))
                     {
@@ -2210,12 +2528,9 @@ Examples:
                 deduplicarFNtimeline.Clear();
                 for (int i = 0; i < dateCreated_FN.Count; i++)
                 {
-                    //El diccionario debe recrearse para cada FN
                     Dictionary<string, char[]> dictioFechas = new Dictionary<string, char[]>();
                     imprimeFechas(ref dictioFechas, "FN", longName, dateModificado_FN[i], dateAccessed_FN[i], dateMFTModif_FN[i], dateCreated_FN[i]);
                 }
-                using (var writer = new StreamWriter(nameOut, true))
-                {
                     foreach (var datas in diccIDDataADSInfo)
                     {
                         var enumerator = dictioFechasSI.GetEnumerator();
@@ -2225,13 +2540,13 @@ Examples:
                             writer.WriteLine("{0}\tSI[{1}]\t{2}:{3}\t{4}\t{5}", pair.Key, new string(pair.Value), longName, datas.Value.name, recordNumber, datas.Value.size.ToString("F0"));
                         }
                     }
-                }
             }
+
             public void imprimeFechas(ref Dictionary<string, char[]> dictioFechas, string tipoFecha, string _longName, string dateModificado, string dateAccessed, string dateMFTModif, string dateCreated)
             {
                 dictioFechas.Add(dateModificado, macb);
                 if (dictioFechas.ContainsKey(dateAccessed))
-                { 
+                {
                     dictioFechas[dateAccessed] = "MA..".ToCharArray();
                 }
                 else
@@ -2240,7 +2555,7 @@ Examples:
                 }
                 if (dictioFechas.ContainsKey(dateMFTModif))
                 {
-					dictioFechas[dateMFTModif][2] = 'C';
+                    dictioFechas[dateMFTModif][2] = 'C';
                 }
                 else 
                 {
@@ -2248,22 +2563,20 @@ Examples:
                 }
                 if (dictioFechas.ContainsKey(dateCreated))
                 {
-					dictioFechas[dateCreated][3] = 'B';
+                    dictioFechas[dateCreated][3] = 'B';
                 }
                 else 
                 {
                     dictioFechas.Add(dateCreated, "...B".ToCharArray());
                 }
                 var enumerator = dictioFechas.GetEnumerator();
-                using (var writer = new StreamWriter(nameOut, true))
-                {
                     while (enumerator.MoveNext())
                     {
                         var pair = enumerator.Current;
                         string tempo = string.Join("_", new string[] { pair.Key, tipoFecha, new string(pair.Value), _longName });
                         if (!deduplicarFNtimeline.ContainsKey(tempo))
                         {
-                            if (CommandLine.Parameters.ContainsKey("t"))
+                            if (!CommandLine.Parameters.ContainsKey("x"))
                             {
                                 Console.WriteLine("{0},{1}[{2}],{3},{4},{5}", pair.Key, tipoFecha, new string(pair.Value), _longName, recordNumber, realFileSize.ToString("F0"));
                             }
@@ -2274,7 +2587,6 @@ Examples:
                             deduplicarFNtimeline.Add(tempo, "");
                         }
                     }
-                }
             }
 
             public void GET_RESIDENT_DATA()
@@ -2330,7 +2642,6 @@ Examples:
                 runlist = recordActual.rawRecord[runlistOffset];
                 runlistLowNibble = (byte)(runlist & 0x0F);
                 runlistHighNibble = (byte)((runlist & 0xF0) >> 4);
-                //Console.Write("\n-Nibbles: " + runlistHighNibble + " - " + runlistLowNibble);
                 offsetBytesMFT = 0;
                 isSparse = runlistHighNibble == 0 ? true : false; //sparse runlists
             }
@@ -2339,35 +2650,28 @@ Examples:
             {
                 if (!isSparse)
                 {
-                    //Calculando el run length
                     Array.Copy(arrayPositivos, runLengthComplt, 4);
                     byte[] runLengthLeido = new byte[runlistLowNibble];
                     Array.Copy(recordActual.rawRecord, runlistOffset + 1, runLengthLeido, 0, runlistLowNibble);
                     Array.Copy(runLengthLeido, runLengthComplt, runlistLowNibble);
                     runLength = BitConverter.ToUInt32(runLengthComplt, 0);
-                    //Console.Write(" -> runLength: " + runLength);
-                    //Calculando el run offset
                     byte[] runOffsetLeido = new byte[runlistHighNibble];
                     Array.Copy(recordActual.rawRecord, runlistOffset + 1 + runlistLowNibble, runOffsetLeido, 0, runlistHighNibble);
                     if ((int)runOffsetLeido[runlistHighNibble - 1] > 127)
                     {
-                        //Es negativo
                         int runOffset;
                         Array.Copy(arrayNegativos, runOffsetComplt, 4);
                         Array.Copy(runOffsetLeido, runOffsetComplt, runlistHighNibble);
                         runOffset = BitConverter.ToInt32(runOffsetComplt, 0);
                         offsetBytesMFT = offsetBytesMFT + (ulong)(runOffset * bytesxSector * sectorxCluster);
-                        //Console.WriteLine(" -> runOffset (neg): " + runOffset);
                     }
                     else
                     {
-                        //Es positivo
                         uint runOffset;
                         Array.Copy(arrayPositivos, runOffsetComplt, 4);
                         Array.Copy(runOffsetLeido, runOffsetComplt, runlistHighNibble);
                         runOffset = BitConverter.ToUInt32(runOffsetComplt, 0);
                         offsetBytesMFT = offsetBytesMFT + (ulong)runOffset * (ulong)bytesxSector * (ulong)sectorxCluster;
-                        //Console.WriteLine(" -> runOffset: " + runOffset);
                     }
                 }
                 runlistOffset = runlistOffset + 1 + runlistLowNibble + runlistHighNibble;
@@ -2378,7 +2682,6 @@ Examples:
                 runlist = newRunlist;
                 runlistLowNibble = (byte)(runlist & 0x0F);
                 runlistHighNibble = (byte)((runlist & 0xF0) >> 4);
-                //Console.Write("\n-Nibbles: " + runlistHighNibble + " - " + runlistLowNibble);
                 isSparse = runlistHighNibble == 0 ? true : false; //sparse runlists
             }
         }
@@ -2400,7 +2703,6 @@ Examples:
                 Int32 prevOffsetToAttribute = entryData.offsetToAttribute;
                 entryData.attributeLength = entryData.attributeContentOffset;
                 ProcesaAttrList(entryData, Convert.ToInt32(entryData.attributeContentLength));
-                //Restauro los valores modificados
                 entryData.attributeLength = prevAttributeLength;
                 entryData.attributeSig = 0x20;
                 entryData.offsetToAttribute = prevOffsetToAttribute;
@@ -2428,7 +2730,6 @@ Examples:
                         }
                         dataRunlist.NEXTDATARUNLIST(attListNoResident.rawRecord[dataRunlist.runlistOffset]);
                     }
-                    //Restauro los valores modificados
                     entryData.rawRecord = prevRawRecord;
                     entryData.attributeLength = prevAttributeLength;
                     entryData.attributeSig = 0x20;
@@ -2461,7 +2762,6 @@ Examples:
                         Int16 intprevAttributeLength = entryData.attributeLength;
                         Int32 intprevOffsetToAttribute = entryData.offsetToAttribute;
                         GetPath.FileNameAndParentFrn localiza = GetPath.soloMFTDictOffsets[attRecordNumber];
-                        //***
                         byte[] refRecord = ReadRaw(localiza.RecordOffset, 1024);
                         MFT_ENTRY infoRefRecord = new MFT_ENTRY(refRecord);
                         infoRefRecord.MFT_NEXT_ATTRIBUTE();
@@ -2480,7 +2780,6 @@ Examples:
                         entryData.dateMFTModif_FN.AddRange(infoRefRecord.dateMFTModif_FN);
                         entryData.dateCreated_FN.AddRange(infoRefRecord.dateCreated_FN);
                         entryData.parentDirectoryFN = infoRefRecord.parentDirectoryFN;
-                        //***
                         entryData.attributeLength = intprevAttributeLength;
                         entryData.attributeSig = 0x30;
                         entryData.offsetToAttribute = intprevOffsetToAttribute;
@@ -2492,7 +2791,6 @@ Examples:
                         Int16 intprevAttributeLength = entryData.attributeLength;
                         Int32 intprevOffsetToAttribute = entryData.offsetToAttribute;
                         GetPath.FileNameAndParentFrn localiza = GetPath.soloMFTDictOffsets[attRecordNumber];
-                        //***
                         byte[] refRecord = ReadRaw(localiza.RecordOffset, 1024);
                         MFT_ENTRY infoRefRecord = new MFT_ENTRY(refRecord);
                         infoRefRecord.MFT_NEXT_ATTRIBUTE();
@@ -2518,7 +2816,6 @@ Examples:
                         { // Siempre debe apuntar la referencia al record origen porque es donde está la info de los clusters que ocupa
                             entryData.diccIDDataADSInfo.Add(entryData.recordNumber + resultados.Key.Substring(resultados.Key.IndexOf(":")), resultados.Value);
                         }
-                        //***
                         entryData.attributeLength = intprevAttributeLength;
                         entryData.attributeSig = 0x30;
                         entryData.offsetToAttribute = intprevOffsetToAttribute;
@@ -2535,8 +2832,6 @@ Examples:
             int fnNameLen = entryData.rawRecord[datesOffset + 56];
             string nombreEncontrado = Encoding.Unicode.GetString(entryData.rawRecord, datesOffset + 58, fnNameLen * 2);
             entryData.nombreFN.Add(nombreEncontrado);
-            //int fnNameType = entryData.rawRecord[datesOffset + 57];
-            //entryData.tipoNombreFN.Add(fnNameType);
             entryData.dateCreated_FN.Add(GetDateTimeFromFiletime((long)BitConverter.ToUInt32(entryData.rawRecord, datesOffset + 4), BitConverter.ToUInt32(entryData.rawRecord, datesOffset)));
             entryData.dateModificado_FN.Add(GetDateTimeFromFiletime((long)BitConverter.ToUInt32(entryData.rawRecord, datesOffset + 12), BitConverter.ToUInt32(entryData.rawRecord, datesOffset + 8)));
             entryData.dateMFTModif_FN.Add(GetDateTimeFromFiletime((long)BitConverter.ToUInt32(entryData.rawRecord, datesOffset + 20), BitConverter.ToUInt32(entryData.rawRecord, datesOffset + 16)));
@@ -2559,7 +2854,6 @@ Examples:
         {
             if (entryData.attributeNameLength != 0) //Solo para los ADS,s
             {
-                //entryData.attributeIsAds = true;
                 byte adsNameLen = entryData.rawRecord[entryData.offsetToAttribute + 9];
                 UInt16 adsNameOffset = entryData.rawRecord[entryData.offsetToAttribute + 10];
                 string nombreEncontrado = Encoding.Unicode.GetString(entryData.rawRecord, entryData.offsetToAttribute + adsNameOffset, adsNameLen * 2);
