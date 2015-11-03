@@ -8,7 +8,7 @@ using System.IO;
 using System.ComponentModel;
 using System.Threading;
 
-namespace MFT_fileoper
+namespace MFT_fileoper 
 {
     class MFT_get_details
     {
