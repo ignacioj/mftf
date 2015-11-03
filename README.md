@@ -1,3 +1,5 @@
+Fast MFT timeliner and searcher.
+
 The tool can parse the $MFT from a live system, from a mounted (read-only included) logical drive or from a copy of the $MFT.
 
 Deleted files and folders have their path with the prefix "?".
