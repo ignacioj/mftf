@@ -442,18 +442,22 @@ Examples:
                     mftEntry.attributeLength = BitConverter.ToInt16(mftEntry.rawRecord, mftEntry.offsetToAttribute + 4);
                 }
                 GETDATARUNLIST dataRunlist = new GETDATARUNLIST(mftEntry);
-                while ((dataRunlist.runlist != (byte)(0x00)) & (sigue))
+                dataRunlist.GETLISTS(mftEntry);
+                foreach (var doff in listaDataOffset)
                 {
-                    dataRunlist.GETCLUSTERS(mftEntry);
-                    if (!dataRunlist.isSparse)
+                    uint runLength_ = listaDataRunLength[listaDataOffset.IndexOf(doff)];
+                    var posIni = doff;
+                    uint pos = 0;
+                    uint clusterBytes = (sectorxCluster * bytesxSector);
+                    byte[] cluster = new byte[clusterBytes];
+                    byte[] content = new byte[1024];
+                    ulong byteActual = posIni;
+                    while (pos < runLength_)
                     {
-                        uint runLength_ = dataRunlist.runLength;
-                        byte[] runActualMFT = ReadRaw(dataRunlist.offsetBytesMFT, runLength_ * sectorxCluster * bytesxSector);
-                        runLength_ = (runLength_ * sectorxCluster * bytesxSector) / 1024; //clusters a grupos de 1024 (tamaño de entrada de mft)
-                        byte[] content = new byte[1024];
-                        for (int n = 0; n < runLength_; n++)
+                        cluster = ReadRaw(posIni + (pos * clusterBytes), clusterBytes);
+                        for (ulong n = 0; n < (clusterBytes / 1024); n++)
                         {
-                            Array.Copy(runActualMFT, n * 1024, content, 0, 1024);
+                            Array.Copy(cluster, (int)(n * 1024), content, 0, 1024);
                             if (BitConverter.ToUInt32(content, 44) == recordToCopy)
                             {
                                 loTengo = true;
@@ -495,9 +499,8 @@ Examples:
                                 }
                             }
                         }
-                        runActualMFT = null;
+                        pos += 1;
                     }
-                    dataRunlist.NEXTDATARUNLIST(mftEntry.rawRecord[dataRunlist.runlistOffset]);
                 }
             }
             if (!loTengo)
