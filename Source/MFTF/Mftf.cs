@@ -360,7 +360,7 @@ Examples:
                     }
                 }
 
-
+                     
 
                 else Console.WriteLine("\nUse [-d drive_letter] or [-o offline_mft_file].");
                 if (writer != null)
@@ -1146,7 +1146,6 @@ Examples:
             }
         }
 
-        //    MFT_ENTRY mftEntry = new MFT_ENTRY(ReadRaw(mftOffset, 1024));
 
         public static void BuscaMFTRecord(string referenceBuscada) //
         {
@@ -2882,4 +2881,9 @@ Examples:
             }
             else
             {
-           
+                return "La fecha no es válida";
+            }
+        }
+    }
+}
+
