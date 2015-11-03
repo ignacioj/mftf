@@ -1,5 +1,7 @@
 Fast MFT timeliner and searcher.
 
+Option -tl to make the timeline of a live or offline $MFT ( 1 minute 800k records).
+
 The tool can parse the $MFT from a live system, from a mounted (read-only included) logical drive or from a copy of the $MFT.
 
 Deleted files and folders have their path with the prefix "?".
