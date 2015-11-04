@@ -9,7 +9,7 @@ Deleted files and folders have their path with the prefix "?".
 It can copy files or ADS,s using the references provided in the results.
 
 The copy is made by reading the data from the clusters so that you can copy protected system files or files in use.
-(Imports from "kernel32.dll":	CloseHandle, CreateFile, ReadFile, SetFilePointerEx, GetFileInformationByHandle).
+(Imports from "kernel32.dll":	CloseHandle, CreateFile, ReadFile, SetFilePointerEx).
 
 Examples:
 
