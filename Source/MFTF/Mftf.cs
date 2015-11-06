@@ -46,6 +46,70 @@ namespace MFT_fileoper
             List<string> referencesToCopyList = new List<string>();
             CommandLine = new Arguments(args);
             if (CommandLine["h"] != null || args.Length < 3) { Console.WriteLine(LaAyuda()); }
+            else if ((!string.IsNullOrEmpty(CommandLine["cp"])) && (!string.IsNullOrEmpty(CommandLine["n"])))
+            {
+                try
+                { // forma de comprobar el path
+                    if (!File.Exists(CommandLine["n"]))
+                    {
+                        using (File.Create(CommandLine["n"])) { };
+                        File.Delete(CommandLine["n"]);
+                    }
+                    else { 
+                        Console.WriteLine("\nError: destination file exists.");
+                        return;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Error: can't create the file {0}\n{1}", CommandLine["n"], e.Message.ToString());
+                    return;
+                }
+                UInt64 mftOffset = 0;
+                string letraDisco = CommandLine["cp"].Substring(0, 1) + ":";
+                origen = string.Format("\\\\.\\{0}", letraDisco);
+                GetPath getFullPath = new GetPath();
+                getFullPath.Drive = origen;
+                mftOffset = GetDiskInfo();
+                hDisk = PInvokeWin32.CreateFile(origen,
+                    PInvokeWin32.GENERIC_READ,
+                    PInvokeWin32.FILE_SHARE_READ | PInvokeWin32.FILE_SHARE_WRITE,
+                    IntPtr.Zero,
+                    PInvokeWin32.OPEN_EXISTING,
+                    0,
+                    IntPtr.Zero);
+                if (hDisk.ToInt32() == PInvokeWin32.INVALID_HANDLE_VALUE)
+                {
+                    Console.WriteLine("Invalid disk or elevated privileges needed: {0}", letraDisco);
+                    origenValido = false;
+                }
+                else
+                {
+                    bool ok = false;
+                    string objet = "\\\\" + CommandLine["cp"].Substring(3);
+                    string busc = objet.Substring(objet.LastIndexOf("\\") + 1).ToLower();
+                    string pathBuscado = "\\\\";
+                    if (objet.LastIndexOf("\\") > 1)
+                    {
+                        pathBuscado = objet.Substring(0, objet.LastIndexOf("\\")).ToLower();
+                    }
+                    MakeSoloMFTDict(mftOffset);
+                    foreach (var pagina in GetPath.soloMFTDictOffsets)
+                    {
+                        if (pagina.Value.Name.ToLower() == busc)
+                        {
+                            string nombPath = GetPath.soloMFTGetFullyQualifiedPath(pagina.Value.ParentFrn).ToLower();
+                            if (((nombPath.Length - nombPath.Replace(pathBuscado, String.Empty).Length) / nombPath.Length) == 1)
+                            {
+                                BuscaMFTRecordDesdePath(pagina.Key, mftOffset, CommandLine["n"]);
+                                ok = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!ok) { Console.WriteLine("\nFile not found."); }
+                }
+            }
             else if (((CommandLine["d"] != null) & (CommandLine["o"] == null)) || ((CommandLine["d"] == null) & (CommandLine["o"] != null)))
             {
                 UInt64 mftOffset = 0;
@@ -55,7 +119,7 @@ namespace MFT_fileoper
                     Console.Write("Unit: {0}\n", letraDisco.ToUpper());
                     origen = string.Format("\\\\.\\{0}", letraDisco);
                     GetPath getFullPath = new GetPath();
-                    getFullPath.Drive = MFT_get_details.origen;
+                    getFullPath.Drive = origen;
                     mftOffset = GetDiskInfo();
                     hDisk = PInvokeWin32.CreateFile(origen,
                         PInvokeWin32.GENERIC_READ,
@@ -228,40 +292,6 @@ namespace MFT_fileoper
                             Console.WriteLine("\nCheck the reference.");
                         }
                     }
-                    else if (!string.IsNullOrEmpty(CommandLine["cp"]))
-                    {
-                        if (CommandLine["o"] != null)
-                        {
-                            Console.WriteLine("\nNothing to copy! It's an offline hive.");
-                        }
-                        else if (!CommandLine["cp"].StartsWith("\\\\"))
-                        {
-                            Console.WriteLine("\nPath must start with \\\\");
-                        }
-                        else
-                        {
-                            string busc = CommandLine["cp"].Substring(CommandLine["cp"].LastIndexOf("\\") + 1).ToLower();
-                            string pathBuscado = "\\\\";
-                            if (CommandLine["cp"].LastIndexOf("\\") > 1)
-                            {
-                                pathBuscado = CommandLine["cp"].Substring(0, CommandLine["cp"].LastIndexOf("\\")).ToLower();
-                            }
-                            MakeSoloMFTDict(mftOffset);
-                            foreach (var pagina in GetPath.soloMFTDictOffsets)
-                            {
-                                if (pagina.Value.Name.ToLower() == busc)
-                                {
-                                    string nombPath = GetPath.soloMFTGetFullyQualifiedPath(pagina.Value.ParentFrn).ToLower();
-                                    if (((nombPath.Length - nombPath.Replace(pathBuscado, String.Empty).Length) / nombPath.Length) == 1)
-                                    {
-                                        Console.WriteLine("Encontrado");
-                                        BuscaMFTRecordDesdePath(pagina.Key, mftOffset);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
                     else if (!string.IsNullOrEmpty(CommandLine["cr"]))
                     {
                         if (CommandLine["o"] != null)
@@ -347,7 +377,7 @@ namespace MFT_fileoper
                     Console.WriteLine("RunTime: " + elapsedTime);
                 }
             }
-            else Console.WriteLine("\nUse [-d drive_letter] or [-o offline_mft_file].");
+            else Console.WriteLine(LaAyuda());
             if (writer != null)
             {
                 writer.Close();
@@ -863,7 +893,7 @@ namespace MFT_fileoper
                 }
             }
         }
-        //solo para vivo: metodo alternativo con unsafe y punteros a memoria fijos:
+
 
         public static unsafe void ReadRawV(byte[] buffer, UInt64 _offset, UInt32 numBytesToRead = 512)
         {
@@ -1087,7 +1117,7 @@ namespace MFT_fileoper
                                     }
                                     GetPath.FileNameAndParentFrn f = new GetPath.FileNameAndParentFrn("Metadata/System File", 1, byteActual);
                                     GetPath.soloMFTDictOffsets.Add(infoMFT.recordNumber, f);
-                                    //}
+
                                 }
                             }
                         }
@@ -1101,14 +1131,13 @@ namespace MFT_fileoper
             }
         }
 
-        public static void BuscaMFTRecordDesdePath(UInt32 record, UInt64 mftOffset)
+        public static void BuscaMFTRecordDesdePath(UInt32 record, UInt64 mftOffset, string nombreArch)
         {
             string referenceBuscada = "";
             ushort attIDBuscado = 0;
             UInt64 llevoCopiado = 0;
             GetPath.FileNameAndParentFrn localizado = GetPath.soloMFTDictOffsets[record];
             byte[] refRecord = ReadRaw(localizado.RecordOffset, 1024);
-            string nombreArch = localizado.Name + ".copy";
             MFT_ENTRY infoRecord = new MFT_ENTRY(refRecord);
             if (infoRecord.valFileFlags == 1 || infoRecord.valFileFlags == 5 || infoRecord.valFileFlags == 0)
             {
@@ -3069,12 +3098,16 @@ distributed under the License is distributed on an ""AS IS"" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-Parameters:
-================== Source:
- -d drive_letter       ----- Search/copy files from this logical unit.
- -o file               ----- Search files from this offline $MFT file.
- -h                    ----- This help.
-================== Actions:
+Usage:
+mftf.exe -h      ----- This help.
+================ Direct copy by filename:
+mftf.exe -cp (source_file) -n (destination_file)
+================ Actions:
+mftf.exe [source] [options]
+=========== Source:
+ -d drive_letter       ----- Logical unit.
+ -o MFT_file           ----- Offline $MFT file.
+=========== Options:
 ======== Timeline of the MFT:
  -tl
 ======== Search:
@@ -3106,12 +3139,12 @@ Parameters:
 ======== Copy:
  -cn record_number     Copy the 1024 bytes of the MFT record to this folder.
 ==== For live systems or logical units:
- -cp \\path_to_file     ----- Copy the file to this folder
- -cr ""ref1[|ref2..]""    -----| Copy the referenced file/s to this folder.
+ -cr ""ref1[|ref2..]""    -----| Copy the referenced file/ads to this folder.
                              | Use | as separator.
  -cl list.txt        -----| Copy all the files referenced in the file list.txt.
                           | Each line MUST start with: reference + [TAB].
 Examples:
+> mftf.exe -cp c:\$MFT -n d:\maleta\mft.bin
 > mftf.exe -o mft.bin -tl
 > mftf.exe -d e -f ""svchost|mvui.dll|string with spaces|exact match<"" -t
 > mftf.exe -d e -c 4292:128-1");

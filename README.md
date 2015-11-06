@@ -1,12 +1,12 @@
-Fast MFT timeliner and searcher.
+Search and copy files and ADS,s parsing the $MFT and reading directly the clusters.
 
-Option -tl to make the timeline of a live or offline $MFT ( 1 minute 800k records).
+Option -tl to make the timeline ($SI and $FN times) of a live or offline $MFT ( 1 minute 800k records).
 
 The tool can parse the $MFT from a live system, from a mounted (read-only included) logical drive or from a copy of the $MFT.
 
 Deleted files and folders have their path with the prefix "?".
 
-It can copy files or ADS,s using the references provided in the results.
+It can copy files by filename or files and ADS,s using the references provided in the search results.
 
 The copy is made by reading the data from the clusters so that you can copy protected system files or files in use.
 (Imports from "kernel32.dll":	CloseHandle, CreateFile, ReadFile, SetFilePointerEx).

@@ -1,9 +1,13 @@
-Parameters:
-================== Source:
+Usage:
+mftf.exe -h      ----- This help.
+================ Direct copy by filename:
+mftf.exe -cp (source_file) -n (destination_file)
+================ Actions:
+mftf.exe [source] [options]
+=========== Source:
  -d drive_letter       ----- Search/copy files from this logical unit.
  -o file               ----- Search files from this offline $MFT file.
- -h                    ----- This help.
-================== Actions:
+=========== Options:
 ======== Timeline of the MFT:
  -tl
 ======== Search:
@@ -16,7 +20,7 @@ Parameters:
  -f "folder\string"
                         | The results are filtered using the string "folder".
                    |    | The match is always case insensitive.
-                   +----| " as delimiters for the whole group of strings.
+                   └----| " as delimiters for the whole group of strings.
                         | | is the separator.
                         | < at the end of "string" for an exact coincidence.
  -ff file.txt   ----- The strings to search for are in file.txt. One string per
@@ -35,12 +39,12 @@ Parameters:
 ======== Copy:
  -cn record_number     Copy the 1024 bytes of the MFT record to this folder.
 ==== For live systems or logical units:
- -cp \\path_to_file     ----- Copy the file to this folder
- -cr "ref1[|ref2..]"    -----| Copy the referenced file/s to this folder.
+ -cr "ref1[|ref2..]"    -----| Copy the referenced file/ads to this folder.
                              | Use | as separator.
  -cl list.txt        -----| Copy all the files referenced in the file list.txt.
                           | Each line MUST start with: reference + [TAB].
 Examples:
+> mftf.exe -cp c:\$MFT -n d:\maleta\mft.bin
 > mftf.exe -o mft.bin -tl
 > mftf.exe -d e -f "svchost|mvui.dll|string with spaces|exact match<" -t
 > mftf.exe -d e -c 4292:128-1
