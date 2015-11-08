@@ -2862,7 +2862,8 @@ namespace MFT_fileoper
                 entryData.attributeSig = 0x20;
                 entryData.offsetToAttribute = prevOffsetToAttribute;
             }
-            else
+			// Evito los borrados porque a saber lo que hay ahora donde apuntan
+            else if ((entryData.valFileFlags != 0) && (entryData.valFileFlags != 2))
             {
                 if (CommandLine["o"] == null)
                 {
