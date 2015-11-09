@@ -2655,7 +2655,7 @@ namespace MFT_fileoper
             public void MFT_SHOW_DATA_TL()
             {
                 Dictionary<string, char[]> dictioFechasSI = new Dictionary<string, char[]>();
-                string longName = "";
+                string longName = "?";
                 for (int i = 0; i < nombreFN.Count; i++)
                 {
                     nombreFN[i] = Path.Combine(GetPath.soloMFTGetFullyQualifiedPath(parentDirectoryFN), nombreFN[i]);
