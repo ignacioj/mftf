@@ -13,6 +13,39 @@ The copy is made by reading the data from the clusters so that you can copy prot
 
 Examples:
 
+Sparse chunks are not copied. This is very useful when copying the $Usnjrnl:$J. Here the real size of the $J was 19 Gb but 
+only 470 Mb had content while the rest were sparse chunks. The final file was only 470 Mb in size:
+
+>mftf -cp c:\$extend\$usnjrnl:$j -n d:\data\$j.dat
+
+FS: NTFS
+
+Sector size: 512 bytes
+
+Cluster size: 8 sectors
+
+Starting cluster of the MFT: 4 [Offset: 0x4000]
+
+Records: 602,919
+
+
+Writing run length: 0 [Real file size: 18,988,733,296 bytes].
+
+Sparse chunk not saved: 0 bytes.
+
+Writing run length: 0 [Real file size: 18,988,733,296 bytes].
+
+Sparse chunk not saved: 0 bytes.
+
+Writing run length: 69,926,912 [Real file size: 18,988,733,296 bytes].
+
+Writing run length: 109,260,800 [Real file size: 18,988,733,296 bytes].
+
+Writing run length: 33,017,856 [Real file size: 18,988,733,296 bytes].
+
+...........
+
+
 In this example the file has 4 $FN attributes and two ADS and the Attribute List points to another record.
 
 mftf -d c -i 623677
