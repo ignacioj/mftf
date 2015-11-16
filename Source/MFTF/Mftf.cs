@@ -36,9 +36,12 @@ namespace MFT_fileoper
         public static DateTime empieza = DateTime.Now;
         public static  List<uint> listaDataRunLength = new List<uint>();
         public static List<ulong> listaDataOffset = new List<ulong>();
+        public static string letraDisco;
+        //Para lectura en vivo
         public static IntPtr hDisk;
         public static StreamWriter writer;
         public static BinaryReader readBin;
+        // tamaño del archivo MFT
         public static int tam;
 
         static void Main(string[] args)
@@ -46,6 +49,7 @@ namespace MFT_fileoper
             empieza = DateTime.Now;
             List<string> buscadasList = new List<string>();
             List<string> referencesToCopyList = new List<string>();
+            // Command line parsing
             CommandLine = new Arguments(args);
             if (CommandLine["h"] != null || args.Length < 3) { Console.WriteLine(LaAyuda()); }
             else if ((!string.IsNullOrEmpty(CommandLine["cp"])) && (!string.IsNullOrEmpty(CommandLine["n"])))
@@ -68,7 +72,7 @@ namespace MFT_fileoper
                     return;
                 }
                 UInt64 mftOffset = 0;
-                string letraDisco = CommandLine["cp"].Substring(0, 1) + ":";
+                letraDisco = CommandLine["cp"].Substring(0, 1) + ":";
                 origen = string.Format("\\\\.\\{0}", letraDisco);
                 GetPath getFullPath = new GetPath();
                 getFullPath.Drive = origen;
@@ -76,6 +80,7 @@ namespace MFT_fileoper
                 hDisk = PInvokeWin32.CreateFile(origen,
                     PInvokeWin32.GENERIC_READ,
                     PInvokeWin32.FILE_SHARE_READ | PInvokeWin32.FILE_SHARE_WRITE,
+                    //PInvokeWin32.FILE_SHARE_READ,
                     IntPtr.Zero,
                     PInvokeWin32.OPEN_EXISTING,
                     0,
@@ -90,10 +95,10 @@ namespace MFT_fileoper
                     bool ok = false;
                     bool buscADS = false;
                     string[] nomYads = null;
-                    string objet = "\\\\" + CommandLine["cp"].Substring(3);
+                    string objet = CommandLine["cp"];
                     string busc = objet.Substring(objet.LastIndexOf("\\") + 1).ToLower();
-                    string pathBuscado = "\\\\";
-                    if (objet.LastIndexOf("\\") > 1)
+                    string pathBuscado = letraDisco + "\\";
+                    if (objet.LastIndexOf("\\") > 2)
                     {
                         pathBuscado = objet.Substring(0, objet.LastIndexOf("\\")).ToLower();
                     }
@@ -113,6 +118,8 @@ namespace MFT_fileoper
                             {
                                 if (!buscADS)
                                 {
+                                    //BuscaMFTRecord(pagina.Key.ToString() + ":128-0", CommandLine["n"]);
+                                    // no todos los archivos tienen el ID 0
                                     BuscaMFTRecordDesdePath(pagina.Key, mftOffset, CommandLine["n"]);
                                     if (copiado) { Console.WriteLine("Copy finished: {0}", CommandLine["n"]); }
                                     break;
@@ -140,7 +147,7 @@ namespace MFT_fileoper
                 UInt64 mftOffset = 0;
                 if (!string.IsNullOrEmpty(CommandLine["d"]))
                 {
-                    string letraDisco = CommandLine["d"].Substring(0, 1) + ":";
+                    letraDisco = CommandLine["d"].ToUpper().Substring(0, 1) + ":";
                     Console.Write("Unit: {0}\n", letraDisco.ToUpper());
                     origen = string.Format("\\\\.\\{0}", letraDisco);
                     GetPath getFullPath = new GetPath();
@@ -149,6 +156,7 @@ namespace MFT_fileoper
                     hDisk = PInvokeWin32.CreateFile(origen,
                         PInvokeWin32.GENERIC_READ,
                         PInvokeWin32.FILE_SHARE_READ | PInvokeWin32.FILE_SHARE_WRITE,
+                        //PInvokeWin32.FILE_SHARE_READ,
                         IntPtr.Zero,
                         PInvokeWin32.OPEN_EXISTING,
                         0,
@@ -161,6 +169,7 @@ namespace MFT_fileoper
                 }
                 else if (!string.IsNullOrEmpty(CommandLine["o"]))
                 {
+                    letraDisco = "\\";
                     mftOffset = 0;
                     mftFile = CommandLine["o"];
                     Console.Write("$MFT offline file: " + mftFile + "\n");
@@ -170,6 +179,7 @@ namespace MFT_fileoper
                         readBin = new BinaryReader(File.Open(mftFile, FileMode.Open));
                         byte[] checkMftFile = new byte[4];
                         readBin.Read(checkMftFile, 0, 4);
+                        //reset el stream
                         readBin.BaseStream.Seek(0, SeekOrigin.Begin);
                         if (BitConverter.ToInt32(cabecera, 0) == BitConverter.ToInt32(checkMftFile, 0))
                         {
@@ -195,7 +205,12 @@ namespace MFT_fileoper
                         {
                             nameOut = "MFTF_timeline.csv";
                             Console.Write("\nTimeline of the MFT.\n");
+                            //if (CommandLine["o"] == null)
+                            //{
+                            //    CargaMftMemoria(mftOffset);
+                            //}
                             MakeSoloMFTDict(mftOffset);
+                            //chapuza para la rutina de impresion
                             if (!CommandLine.Parameters.ContainsKey("x")) { CommandLine.Parameters.Add("x", ""); }
                             writer = new StreamWriter(nameOut, true);
                             writer.WriteLine("Filetime\t[MACB]\tfilename\trecord\tsize");
@@ -231,20 +246,31 @@ namespace MFT_fileoper
                         var buscadasFile = File.ReadAllLines(CommandLine["ff"]);
                         buscadasList.AddRange(buscadasFile);
                         Console.WriteLine("\nFinding strings from file {0}", CommandLine["ff"]);
+                        //Console.WriteLine("COMIENZA MakeMFTDict: " + DateTime.Now);
                         MakeSoloMFTDict(mftOffset);
+                        //Console.WriteLine("\nFIN DE MakeMFTDict: " + DateTime.Now);
                         BuscaCadenasO(mftOffset, buscadasList);
                     }
                     else if (!string.IsNullOrEmpty(CommandLine["f"]))
                     {
-                        nameOut = DateTime.Now.ToString("yyMMddHHmmss") + "_References.txt";
-                        if (CommandLine["x"] != null) { writer = new StreamWriter(nameOut, true); }
-                        Console.Write("\nFind:");
-                        char[] delimiters = new char[] { '|' };
-                        string[] words = CommandLine["f"].Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
-                        Console.WriteLine(String.Join("|", words));
-                        buscadasList.AddRange(words);
-                        MakeSoloMFTDict(mftOffset);
-                        BuscaCadenasO(mftOffset, buscadasList);
+                        if (!Regex.IsMatch(CommandLine["f"], "^.*:.*$"))
+                        {
+                            nameOut = DateTime.Now.ToString("yyMMddHHmmss") + "_References.txt";
+                            if (CommandLine["x"] != null) { writer = new StreamWriter(nameOut, true); }
+                            Console.Write("\nFind:");
+                            char[] delimiters = new char[] { '|' };
+                            string[] words = CommandLine["f"].Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
+                            Console.WriteLine(String.Join("|", words));
+                            buscadasList.AddRange(words);
+                            //Console.WriteLine("COMIENZA MakeMFTDict: " + DateTime.Now);
+                            MakeSoloMFTDict(mftOffset);
+                            //Console.WriteLine("\nFIN DE MakeMFTDict: " + DateTime.Now);
+                            BuscaCadenasO(mftOffset, buscadasList);
+                        }
+                        else
+                        {
+                            Console.WriteLine("\nAre you trying to search a path? Use -fd");
+                        }
                     }
                     else if (!string.IsNullOrEmpty(CommandLine["fd"]))
                     {
@@ -275,8 +301,10 @@ namespace MFT_fileoper
                             Console.Write("\nMatch directory:");
                             Console.WriteLine(CommandLine["fd"]);
                             Console.WriteLine("Recursion: " + recursion.ToString());
-                            buscadasList.Add(CommandLine["fd"]);
+                            buscadasList.Add(letraDisco  + CommandLine["fd"].Substring(1));
+                            //Console.WriteLine("COMIENZA MakeMFTDict: " + DateTime.Now);
                             MakeSoloMFTDict(mftOffset);
+                            //Console.WriteLine("\nFIN DE MakeMFTDict: " + DateTime.Now);
                             BuscaCadenasO(mftOffset, buscadasList);
                         }
                     }
@@ -369,10 +397,13 @@ namespace MFT_fileoper
                                     Console.WriteLine("\nError reading file {0}.", CommandLine["cl"]);
                                     return;
                                 }
+                                //Console.WriteLine("COMIENZA MakeMFTDict: " + DateTime.Now);
                                 MakeSoloMFTDict(mftOffset);
+                                //Console.WriteLine("\nFIN DE MakeMFTDict: " + DateTime.Now);
                                 foreach (string referenceBuscada in referencesToCopyList)
                                 {
                                     Console.WriteLine("Copying:" + referenceBuscada);
+                                    //if (Regex.IsMatch(CommandLine["cr"], "^[0-9]{1,9}:128-[0-9]{1,4}$")) //De momento solo los DATA: 128
                                     if (Regex.IsMatch(referenceBuscada, "^[0-9]{1,9}:128-[0-9]{1,4}$")) //De momento solo los DATA: 128
                                     {
                                         string[] recordRef = referenceBuscada.Split(':');
@@ -490,6 +521,7 @@ namespace MFT_fileoper
                     byte[] cluster = new byte[clusterBytes];
                     byte[] content = new byte[1024];
                     ulong byteActual = posIni;
+                    //Lectura por clusters
                     while (pos < runLength_)
                     {
                         cluster = ReadRaw(posIni + (pos * clusterBytes), clusterBytes);
@@ -579,9 +611,15 @@ namespace MFT_fileoper
                         }
                         catch
                         {
+                            //captura las excepciones por records validos pero que no contienen nada de nada
                         }
                     }
                     pos += 1024;
+                    //nn += 1;
+                    //if (nn == 204)
+                    //{
+                    //    Console.WriteLine("");
+                    //}
                 }
             }
             else
@@ -595,6 +633,7 @@ namespace MFT_fileoper
                     byte[] cluster = new byte[clusterBytes];
                     byte[] record = new byte[1024];
                     ulong byteActual = posIni;
+                    //Lectura por clusters
                     while (pos < runLength_)
                     {
                         cluster = ReadRaw(posIni + (pos * clusterBytes), clusterBytes);
@@ -618,6 +657,7 @@ namespace MFT_fileoper
                                 }
                                 catch
                                 {
+                                    //captura las excepciones por records validos pero que no contienen nada de nada
                                 }
                             }
                         }
@@ -695,6 +735,7 @@ namespace MFT_fileoper
                     byte[] cluster = new byte[clusterBytes];
                     byte[] content = new byte[1024];
                     ulong byteActual = posIni;
+                    //Lectura por clusters
                     while (pos < runLength_)
                     {
                         cluster = ReadRaw(posIni + (pos * clusterBytes), clusterBytes);
@@ -796,7 +837,15 @@ namespace MFT_fileoper
                         pos += 1024;
                         continue;
                     }
+                    ////No pierdo acentos ni ñ y tarda 5 sg.. En UTF7 también conserva acentos y ñ.
                     string cadenaRawa = Encoding.Default.GetString(content2).Replace("\0", "").ToLower(); //Al menos quito los 0
+                    ////La sustitucion con el regex hacía perder acentos y la ñ, y tardaba >50 sg.
+                    //string cadenaRaw = (Regex.Replace(Encoding.Default.GetString(entryInfo), @"[^\u001F-\u00AF]", string.Empty)).ToLowerInvariant(); //Console.WriteLine(offsetBytesMFT.ToString("X"));
+                    //
+                    // Según parece es más rápido http://cc.davelozinski.com/c-sharp/fastest-way-to-check-if-a-string-occurs-within-a-string 
+                    //(((infoMFT.nombres.Length - (infoMFT.nombres.Replace(nombreBuscado.ToLower(), String.Empty)).Length) / nombreBuscado.Length) > 0)
+                    // que hacer:
+                    //if (infoMFT.nombres.Contains(nombreBuscado.ToLower()))
                     if (((cadenaRawa.Length - (cadenaRawa.ToLower().Replace(cadeBuscada.ToLower(), String.Empty)).Length) / cadeBuscada.Length) > 0)
                     {
                         if (infoMFT.fileReferenceToBaseFile == 0) //Comprobacion para casos donde hay record base
@@ -828,6 +877,7 @@ namespace MFT_fileoper
                     byte[] cluster = new byte[clusterBytes];
                     byte[] entryInfo = new byte[1024];
                     ulong byteActual = posIni;
+                    //Lectura por clusters
                     while (pos < runLength_)
                     {
                         cluster = ReadRaw(posIni + (pos * clusterBytes), clusterBytes);
@@ -842,7 +892,15 @@ namespace MFT_fileoper
                                 Console.WriteLine("I omit record {0}: has a wrong fixup value", infoMFT.recordNumber);
                                 continue;
                             }
+                            ////No pierdo acentos ni ñ y tarda 5 sg.. En UTF7 también conserva acentos y ñ.
                             string cadenaRawa = Encoding.Default.GetString(entryInfo).Replace("\0", "").ToLower(); //Al menos quito los 0
+                            ////La sustitucion con el regex hacía perder acentos y la ñ, y tardaba >50 sg.
+                            //string cadenaRaw = (Regex.Replace(Encoding.Default.GetString(entryInfo), @"[^\u001F-\u00AF]", string.Empty)).ToLowerInvariant(); //Console.WriteLine(offsetBytesMFT.ToString("X"));
+                            //
+                            // Según parece es más rápido http://cc.davelozinski.com/c-sharp/fastest-way-to-check-if-a-string-occurs-within-a-string 
+                            //(((infoMFT.nombres.Length - (infoMFT.nombres.Replace(nombreBuscado.ToLower(), String.Empty)).Length) / nombreBuscado.Length) > 0)
+                            // que hacer:
+                            //if (infoMFT.nombres.Contains(nombreBuscado.ToLower()))
                             if (((cadenaRawa.Length - (cadenaRawa.ToLower().Replace(cadeBuscada.ToLower(), String.Empty)).Length) / cadeBuscada.Length) > 0)
                             {
                                 if (infoMFT.fileReferenceToBaseFile == 0) //Comprobacion para casos donde hay record base
@@ -882,10 +940,17 @@ namespace MFT_fileoper
                 {
                     foreach (var doff in listaDataOffset)
                     {
+                        //Console.WriteLine("COMIENZA BuscaCoincidencias: " + DateTime.Now);
                         BuscaCoincidencias(listaDataRunLength[listaDataOffset.IndexOf(doff)], doff, buscadasList);
+                        //Console.WriteLine("FIN de BuscaCoincidencias: " + DateTime.Now);
                     }
                 }
             }
+            //TimeSpan ts = DateTime.Now.Subtract(empieza);
+            //string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+            //        ts.Hours, ts.Minutes, ts.Seconds,
+            //        ts.Milliseconds / 10);
+            //Console.WriteLine("Busqueda hecha: " + elapsedTime);
             Console.WriteLine("Total: {0}\n", refCoincid.Count);
             GetCoinciDetalles();
         }
@@ -895,6 +960,7 @@ namespace MFT_fileoper
             if (CommandLine["o"] != null)
             {
                 byte[] buffer = new byte[numBytesToRead];
+                //para continuar el Read de la funcion donde estaba
                 long prevPos = readBin.BaseStream.Position;
                 readBin.BaseStream.Position = (long)_offset;
                 readBin.Read(buffer, 0, (int)numBytesToRead);
@@ -903,6 +969,7 @@ namespace MFT_fileoper
             }
             else
             {
+                // moves the pointer to a given offset
                 Int64 newOffset;
                 PInvokeWin32.SetFilePointerEx(hDisk, _offset, out newOffset, PInvokeWin32.FILE_BEGIN);
                 UInt32 numBytesRead;
@@ -919,6 +986,8 @@ namespace MFT_fileoper
             }
         }
 
+        //solo para vivo: metodo alternativo con unsafe y punteros a memoria fijos:
+        // Use the Windows ReadFile Function : https://msdn.microsoft.com/en-us/library/2d9wy99d.aspx
 
         public static unsafe void ReadRawV(byte[] buffer, UInt64 _offset, UInt32 numBytesToRead = 512)
         {
@@ -948,9 +1017,11 @@ namespace MFT_fileoper
 
         public static byte[] ReadRawD(UInt64 _offset, UInt32 numBytesToRead = 512)
         {
+            //string driveRoot = string.Format("\\\\.\\PhysicalDrive{0}", diskExam);
             IntPtr hDisk = PInvokeWin32.CreateFile(origen,
                 PInvokeWin32.GENERIC_READ,
                 PInvokeWin32.FILE_SHARE_READ | PInvokeWin32.FILE_SHARE_WRITE,
+                //PInvokeWin32.FILE_SHARE_READ,
                 IntPtr.Zero,
                 PInvokeWin32.OPEN_EXISTING,
                 0,
@@ -958,6 +1029,7 @@ namespace MFT_fileoper
 
             if (hDisk.ToInt32() != PInvokeWin32.INVALID_HANDLE_VALUE)
             {
+                // moves the pointer to a given offset
                 Int64 newOffset;
                 PInvokeWin32.SetFilePointerEx(hDisk, _offset, out newOffset, PInvokeWin32.FILE_BEGIN);
                 UInt32 numBytesRead;
@@ -1019,6 +1091,7 @@ namespace MFT_fileoper
                         {
                             if (GetPath.soloMFTDictOffsets.ContainsKey(infoMFT.recordNumber))
                             {
+                                //ya existe
                                 string nNombre = GetPath.soloMFTDictOffsets[infoMFT.recordNumber].Name.Length < nombre.Length ? nombre : GetPath.soloMFTDictOffsets[infoMFT.recordNumber].Name;
                                 UInt32 nparentDirectory = parentDirectory == 0 ? GetPath.soloMFTDictOffsets[infoMFT.recordNumber].ParentFrn : 0;
                                 GetPath.FileNameAndParentFrn actualizar = new GetPath.FileNameAndParentFrn(nNombre, parentDirectory, Convert.ToUInt64(pos));
@@ -1041,10 +1114,13 @@ namespace MFT_fileoper
                             {
                                 diccRecordHijos.Add(infoMFT.fileReferenceToBaseFile, new List<UInt32> { infoMFT.recordNumber });
                             }
+                            //agrego este record
                             GetPath.FileNameAndParentFrn f = new GetPath.FileNameAndParentFrn("Metadata/System File", 1, Convert.ToUInt64(pos));
                             GetPath.soloMFTDictOffsets.Add(infoMFT.recordNumber, f);
+                            //agrego el record del que desciende
                             if (GetPath.soloMFTDictOffsets.ContainsKey(infoMFT.fileReferenceToBaseFile))
                             {
+                                //ya existe
                                 string nNombre = GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].Name.Length < nombre.Length ? nombre : GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].Name;
                                 UInt64 nOffset = GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].RecordOffset != 0 ? GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].RecordOffset : 0;
                                 UInt32 nparentDirectory = parentDirectory == 0 ? GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].ParentFrn : parentDirectory;
@@ -1060,6 +1136,7 @@ namespace MFT_fileoper
                         }
                         pos += 1024;
                     }
+                    //Hay que modificar el root que apunta a si mismo
                     GetPath.FileNameAndParentFrn actualizarRoot = new GetPath.FileNameAndParentFrn("\\\\", 0, GetPath.soloMFTDictOffsets[5].RecordOffset);
                     GetPath.soloMFTDictOffsets.Remove(5);
                     GetPath.soloMFTDictOffsets.Add(5, actualizarRoot);
@@ -1083,6 +1160,13 @@ namespace MFT_fileoper
                 }
                 GETDATARUNLIST dataRunlist = new GETDATARUNLIST(mftEntry);
                 dataRunlist.GETLISTS(mftEntry);
+                //while (dataRunlist.runlist != (byte)(0x00))
+                //{
+                //    dataRunlist.GETCLUSTERS(mftEntry);
+                //    if (!dataRunlist.isSparse)
+                //    {
+                //        uint runLength_ = dataRunlist.runLength;
+                //        var posIni = dataRunlist.offsetBytesMFT;
                 foreach (var doff in listaDataOffset)
                 {
                     uint runLength_ = listaDataRunLength[listaDataOffset.IndexOf(doff)];
@@ -1092,6 +1176,7 @@ namespace MFT_fileoper
                     byte[] cluster = new byte[clusterBytes];
                     byte[] record = new byte[1024];
                     ulong byteActual = posIni;
+                    //Lectura por clusters
                     while (pos < runLength_)
                     {
                         cluster = ReadRaw(posIni + (pos * clusterBytes), clusterBytes);
@@ -1131,23 +1216,25 @@ namespace MFT_fileoper
                                         UInt16 adsNameOffset = infoMFT.rawRecord[infoMFT.offsetToAttribute + 10];
                                         UInt16 attID = infoMFT.rawRecord[infoMFT.offsetToAttribute + 14]; 
                                         nombADS.Add(Encoding.Unicode.GetString(infoMFT.rawRecord, infoMFT.offsetToAttribute + adsNameOffset, adsNameLen * 2), attID);
-                                        if (Encoding.Unicode.GetString(infoMFT.rawRecord, infoMFT.offsetToAttribute + adsNameOffset, adsNameLen * 2) == "$J")
-                                        {
-                                            Console.Write("");
-                                        }
                                     }
                                 }
                                 infoMFT.MFT_NEXT_ATTRIBUTE();
                             }
+                            // Records del 12 al 15: marcados como en uso (1) pero sin nada
+                            // Records del 16 al 23: marcados como no en uso (0) pero con número de record 0 (como la $MFT) en algunas $MFT
+                            //if (!GetPath.soloMFTDictOffsets.ContainsKey(infoMFT.recordNumber))
+                            //{
                                 if (infoMFT.fileReferenceToBaseFile == 0)
                                 {
                                     if (GetPath.soloMFTDictOffsets.ContainsKey(infoMFT.recordNumber))
                                     {
+                                        //ya existe
                                         string nNombre = GetPath.soloMFTDictOffsets[infoMFT.recordNumber].Name.Length < nombre.Length ? nombre : GetPath.soloMFTDictOffsets[infoMFT.recordNumber].Name;
                                         UInt32 nparentDirectory = parentDirectory == 0 ? GetPath.soloMFTDictOffsets[infoMFT.recordNumber].ParentFrn : 0;
                                         GetPath.FileNameAndParentFrn actualizar = new GetPath.FileNameAndParentFrn(nNombre, parentDirectory, byteActual);
                                         GetPath.soloMFTDictOffsets.Remove(infoMFT.recordNumber);
                                         GetPath.soloMFTDictOffsets.Add(infoMFT.recordNumber, actualizar);
+                                        // actualizo el dicc de ADS si existe para ese record
                                         if (nombADS != null)
                                         {
                                             if (diccRecordADS.ContainsKey(infoMFT.recordNumber))
@@ -1180,16 +1267,20 @@ namespace MFT_fileoper
                                     {
                                         diccRecordHijos.Add(infoMFT.fileReferenceToBaseFile, new List<UInt32> { infoMFT.recordNumber });
                                     }
+                                    //agrego este record
                                     GetPath.FileNameAndParentFrn f = new GetPath.FileNameAndParentFrn("Metadata/System File", 1, byteActual);
                                     GetPath.soloMFTDictOffsets.Add(infoMFT.recordNumber, f);
+                                    //agrego el record del que desciende
                                     if (GetPath.soloMFTDictOffsets.ContainsKey(infoMFT.fileReferenceToBaseFile))
                                     {
+                                        //ya existe
                                         string nNombre = GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].Name.Length < nombre.Length ? nombre : GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].Name;
                                         UInt64 nOffset = GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].RecordOffset != 0 ? GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].RecordOffset : 0;
                                         UInt32 nparentDirectory = parentDirectory == 0 ? GetPath.soloMFTDictOffsets[infoMFT.fileReferenceToBaseFile].ParentFrn : parentDirectory;
                                         GetPath.FileNameAndParentFrn actualizar = new GetPath.FileNameAndParentFrn(nNombre, nparentDirectory, nOffset);
                                         GetPath.soloMFTDictOffsets.Remove(infoMFT.fileReferenceToBaseFile);
                                         GetPath.soloMFTDictOffsets.Add(infoMFT.fileReferenceToBaseFile, actualizar);
+                                        // actualizo el dicc de ADS si existe para ese record
                                         if (nombADS != null)
                                         {
                                             if (diccRecordADS.ContainsKey(infoMFT.fileReferenceToBaseFile))
@@ -1213,24 +1304,40 @@ namespace MFT_fileoper
                                         diccRecordADS.Add(infoMFT.fileReferenceToBaseFile, nombADS);
                                     }
                                 }
+                            //}
                         }
                         pos += 1;
+                    //    }
+                    //}
+                    //dataRunlist.NEXTDATARUNLIST(mftEntry.rawRecord[dataRunlist.runlistOffset]);	
                     }
                 }
-                GetPath.FileNameAndParentFrn actualizarRoot = new GetPath.FileNameAndParentFrn("\\\\", 0, GetPath.soloMFTDictOffsets[5].RecordOffset );
+                //Hay que modificar el root que apunta a si mismo
+                GetPath.FileNameAndParentFrn actualizarRoot = new GetPath.FileNameAndParentFrn(letraDisco + "\\", 0, GetPath.soloMFTDictOffsets[5].RecordOffset );
                 GetPath.soloMFTDictOffsets.Remove(5);
+                //GetPath.FileNameAndParentFrn actualizarRoot = new GetPath.FileNameAndParentFrn(origen + Path.DirectorySeparatorChar, 0, 0);
+                //GetPath.FileNameAndParentFrn actualizarRoot = new GetPath.FileNameAndParentFrn("\\\\", 0, 0);
                 GetPath.soloMFTDictOffsets.Add(5, actualizarRoot);
+                //TimeSpan ts = DateTime.Now.Subtract(empieza);
+                //string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+                //        ts.Hours, ts.Minutes, ts.Seconds,
+                //        ts.Milliseconds / 10);
+                //Console.WriteLine("Diccionario hecho: " + elapsedTime);
                 Console.WriteLine("Records: {0}", GetPath.soloMFTDictOffsets.Count.ToString("N0"));
             }
         }
 
+        //// PENDIENTE: juntar BuscaMFTRecord[DesdePath] y ProcessAttrListParaCopia[DesdePath]  ¡chapuza rápida!
         public static void BuscaMFTRecordDesdePath(UInt32 record, UInt64 mftOffset, string nombreArch)
         {
+            // quitar
             string referenceBuscada = "";
             ushort attIDBuscado = 0;
+            // esto
             UInt64 llevoCopiado = 0;
             GetPath.FileNameAndParentFrn localizado = GetPath.soloMFTDictOffsets[record];
             byte[] refRecord = ReadRaw(localizado.RecordOffset, 1024);
+            //string nombreArch = localizado.Name + ".copy";
             MFT_ENTRY infoRecord = new MFT_ENTRY(refRecord);
             if (infoRecord.valFileFlags == 1 || infoRecord.valFileFlags == 5 || infoRecord.valFileFlags == 0)
             {
@@ -1245,7 +1352,9 @@ namespace MFT_fileoper
                             Int16 prevAttributeLength = infoRecord.attributeLength;
                             Int32 prevOffsetToAttribute = infoRecord.offsetToAttribute;
                             infoRecord.attributeLength = infoRecord.attributeContentOffset;
+                            //////////********************
                             ProcessAttrListParaCopiaDesdePath(infoRecord, Convert.ToInt32(infoRecord.attributeContentLength));
+                            /////////********************
                             infoRecord.attributeLength = prevAttributeLength;
                             infoRecord.attributeSig = 0x20;
                             infoRecord.offsetToAttribute = prevOffsetToAttribute;
@@ -1271,6 +1380,7 @@ namespace MFT_fileoper
                                 }
                                 dataRunlist.NEXTDATARUNLIST(attListNoResident.rawRecord[dataRunlist.runlistOffset]);
                             }
+                            //Restauro los valores modificados
                             infoRecord.rawRecord = prevRawRecord;
                             infoRecord.attributeLength = prevAttributeLength;
                             infoRecord.attributeSig = 0x20;
@@ -1303,6 +1413,7 @@ namespace MFT_fileoper
                                     }
                                     else
                                     {
+                                        //Console.WriteLine("El archivo es residente.");
                                         infoRecordDatarun.GET_RESIDENT_DATA();
                                         byte[] dataResidente = new byte[infoRecordDatarun.attributeContentLength];
                                         Array.Copy(infoRecordDatarun.rawRecord, infoRecordDatarun.offsetToAttribute + infoRecordDatarun.attributeContentOffset, dataResidente, 0, infoRecordDatarun.attributeContentLength);
@@ -1328,6 +1439,7 @@ namespace MFT_fileoper
                             }
                             else
                             {
+                                //Console.WriteLine("El archivo es residente.");
                                 infoRecord.GET_RESIDENT_DATA();
                                 byte[] dataResidente = new byte[infoRecord.attributeContentLength];
                                 Array.Copy(infoRecord.rawRecord, infoRecord.offsetToAttribute + infoRecord.attributeContentOffset, dataResidente, 0, infoRecord.attributeContentLength);
@@ -1353,6 +1465,9 @@ namespace MFT_fileoper
             {
                 switch (infoRecord.valFileFlags)
                 {
+                    //case 0:
+                    //    Console.WriteLine("\nNot suported: deleted file");
+                    //    break;
                     case 2:
                         Console.WriteLine("\nNot suported: deleted directory.");
                         break;
@@ -1389,6 +1504,7 @@ namespace MFT_fileoper
                         Int16 intprevAttributeLength = infoRecord.attributeLength;
                         Int32 intprevOffsetToAttribute = infoRecord.offsetToAttribute;
                         GetPath.FileNameAndParentFrn localiza = GetPath.soloMFTDictOffsets[attRecordNumber];
+                        //***
                         byte[] referenceRecord = ReadRaw(localiza.RecordOffset, 1024);
                         MFT_ENTRY entryData = new MFT_ENTRY(referenceRecord);
                         entryData.MFT_NEXT_ATTRIBUTE();
@@ -1401,6 +1517,15 @@ namespace MFT_fileoper
                                 {
                                     copiado = true;
                                     UInt64 fileSize;
+                                    //if (entryData.attributeNameLength != 0) //el nombre de los ADS
+                                    //{
+                                    //    string nameAtt = Encoding.Unicode.GetString(entryData.rawRecord, entryData.offsetToAttribute + entryData.attributeNameOffset, entryData.attributeNameLength * 2);
+                                    //    nombreArch = nombreArch + "[ADS]" + nameAtt + ".dat";
+                                    //}
+                                    //else
+                                    //{
+                                    //    nombreArch = nombreArch + ".dat";
+                                    //}
                                     if (entryData.attributeIsResident == 0)
                                     {
                                         fileSize = Convert.ToUInt64(entryData.attributeContentLength);
@@ -1425,6 +1550,7 @@ namespace MFT_fileoper
                         {
                             diccDatosCopia[infoRecord.attrListStartVCN].sizeCopiar = entryData.realFileSize;
                         }
+                        //***
                         infoRecord.attributeLength = intprevAttributeLength;
                         infoRecord.attributeSig = 0x30;
                         infoRecord.offsetToAttribute = intprevOffsetToAttribute;
@@ -1474,7 +1600,9 @@ namespace MFT_fileoper
                                 Int16 prevAttributeLength = infoRecord.attributeLength;
                                 Int32 prevOffsetToAttribute = infoRecord.offsetToAttribute;
                                 infoRecord.attributeLength = infoRecord.attributeContentOffset;
+                                //////////********************
                                 ProcessAttrListParaCopia(infoRecord, Convert.ToInt32(infoRecord.attributeContentLength), attIDBuscado);
+                                /////////********************
                                 infoRecord.attributeLength = prevAttributeLength;
                                 infoRecord.attributeSig = 0x20;
                                 infoRecord.offsetToAttribute = prevOffsetToAttribute;
@@ -1500,6 +1628,7 @@ namespace MFT_fileoper
                                     }
                                     dataRunlist.NEXTDATARUNLIST(attListNoResident.rawRecord[dataRunlist.runlistOffset]);
                                 }
+                                //Restauro los valores modificados
                                 infoRecord.rawRecord = prevRawRecord;
                                 infoRecord.attributeLength = prevAttributeLength;
                                 infoRecord.attributeSig = 0x20;
@@ -1532,6 +1661,7 @@ namespace MFT_fileoper
                                         }
                                         else
                                         {
+                                            //Console.WriteLine("El archivo es residente.");
                                             infoRecordDatarun.GET_RESIDENT_DATA();
                                             byte[] dataResidente = new byte[infoRecordDatarun.attributeContentLength];
                                             Array.Copy(infoRecordDatarun.rawRecord, infoRecordDatarun.offsetToAttribute + infoRecordDatarun.attributeContentOffset, dataResidente, 0, infoRecordDatarun.attributeContentLength);
@@ -1548,6 +1678,16 @@ namespace MFT_fileoper
                             infoRecord.MFT_NEXT_ATTRIBUTE_VALIDO();
                             if (infoRecord.attributeID == attIDBuscado)
                             {
+                                //if (infoRecord.attributeNameLength != 0) //el nombre de los ADS
+                                //{
+                                //    string nameAtt = Encoding.Unicode.GetString(infoRecord.rawRecord, infoRecord.offsetToAttribute + infoRecord.attributeNameOffset, infoRecord.attributeNameLength * 2);
+                                //    nombreArch = nombreArch + "@" + nameAtt + ".dat";
+                                //}
+                                //else
+                                //{
+                                //    nombreArch = nombreArch + ".dat";
+                                //}
+                                //Console.WriteLine(" to file {0}", nombreArch);
                                 if (infoRecord.attributeIsResident == 1)
                                 {
                                     UInt64 sizeArchivo = BitConverter.ToUInt64(infoRecord.rawRecord, infoRecord.offsetToAttribute + 48);
@@ -1557,6 +1697,7 @@ namespace MFT_fileoper
                                 }
                                 else
                                 {
+                                    //Console.WriteLine("El archivo es residente.");
                                     infoRecord.GET_RESIDENT_DATA();
                                     byte[] dataResidente = new byte[infoRecord.attributeContentLength];
                                     Array.Copy(infoRecord.rawRecord, infoRecord.offsetToAttribute + infoRecord.attributeContentOffset, dataResidente, 0, infoRecord.attributeContentLength);
@@ -1575,6 +1716,9 @@ namespace MFT_fileoper
                 {
                     switch (infoRecord.valFileFlags)
                     {
+                        //case 0:
+                        //    Console.WriteLine("\nNot suported: deleted file");
+                        //    break;
                         case 2:
                             Console.WriteLine("\nNot suported: deleted directory.");
                             break;
@@ -1633,6 +1777,7 @@ namespace MFT_fileoper
                             count += 1;
                             buscados = null;
                             if (count == 10) { GC.Collect(2); } //Experimentalmente parece que acumula al llegar a esta repeticion
+                            // large objects belong to generation 2: https://msdn.microsoft.com/en-us/magazine/cc534993.aspx
                         }
                         buscados = null;
                         byte[] buscadoUlt = ReadRaw(dataRunlist.offsetBytesMFT + offsetParcial, dataRunlist.runLength * bytesxCluster);
@@ -1652,6 +1797,7 @@ namespace MFT_fileoper
                     else //Voy a escribir  solo lo que diga el tamaño y no lo que diga el runlist porque hay sparse que no es del tipo 0X
                     { //Lo que queda es menor que este runlist luego hay sparse o el último cluster no está lleno
                         UInt64 pendiente = sizeArchivo - llevoCopiado;
+                        //UInt64 aux = Convert.ToUInt64(trozos);
                         UInt64 offsetParcial = 0;
                         byte[] buscados = new byte[sizeCachos * bytesxCluster];
                         while (trozos < pendiente) // Copia de archivos enormes en trozos de 250 Mb
@@ -1670,6 +1816,7 @@ namespace MFT_fileoper
                             {
                                 File.WriteAllBytes(nombreArch, buscados);
                             }
+                            //aux = aux + trozos;
                             pendiente = pendiente - trozos;
                             count += 1;
                             buscados = null;
@@ -1694,6 +1841,7 @@ namespace MFT_fileoper
                         {
                             File.WriteAllBytes(nombreArch, buscadoUltCluster);
                         }
+                        //Del último cluster
                         byte[] buscadoUltClusterResto = ReadRaw(ultimoClusterOffset, bytesxCluster);
                         if (sizeArchivo != 0)
                         {
@@ -1741,6 +1889,7 @@ namespace MFT_fileoper
                         Int16 intprevAttributeLength = infoRecord.attributeLength;
                         Int32 intprevOffsetToAttribute = infoRecord.offsetToAttribute;
                         GetPath.FileNameAndParentFrn localiza = GetPath.soloMFTDictOffsets[attRecordNumber];
+                        //***
                         byte[] referenceRecord = ReadRaw(localiza.RecordOffset, 1024);
                         MFT_ENTRY entryData = new MFT_ENTRY(referenceRecord);
                         entryData.MFT_NEXT_ATTRIBUTE();
@@ -1753,6 +1902,15 @@ namespace MFT_fileoper
                                 {
                                     copiado = true;
                                     UInt64 fileSize;
+                                    //if (entryData.attributeNameLength != 0) //el nombre de los ADS
+                                    //{
+                                    //    string nameAtt = Encoding.Unicode.GetString(entryData.rawRecord, entryData.offsetToAttribute + entryData.attributeNameOffset, entryData.attributeNameLength * 2);
+                                    //    nombreArch = nombreArch + "@" + nameAtt + ".dat";
+                                    //}
+                                    //else
+                                    //{
+                                    //    nombreArch = nombreArch + ".dat";
+                                    //}
                                     if (entryData.attributeIsResident == 0)
                                     {
                                         fileSize = Convert.ToUInt64(entryData.attributeContentLength);
@@ -1777,6 +1935,7 @@ namespace MFT_fileoper
                         {
                             diccDatosCopia[infoRecord.attrListStartVCN].sizeCopiar = entryData.realFileSize;
                         }
+                        //***
                         infoRecord.attributeLength = intprevAttributeLength;
                         infoRecord.attributeSig = 0x30;
                         infoRecord.offsetToAttribute = intprevOffsetToAttribute;
@@ -1796,6 +1955,7 @@ namespace MFT_fileoper
             byte[] cluster = new byte[clusterBytes];
             byte[] entryInfo = new byte[1024];
             ulong byteActual = posIni;
+            //Lectura por clusters
             while (pos < runLength_)
             {
                 cluster = ReadRaw(posIni + (pos * clusterBytes), clusterBytes);
@@ -1810,10 +1970,16 @@ namespace MFT_fileoper
                         Console.WriteLine("Record {0} has a wrong fixup value. Skipped.", infoMFT.recordNumber);
                         continue;
                     }
+                    //Console.WriteLine(offsetBytesMFT.ToString("X"));
+                    // Según parece es más rápido http://cc.davelozinski.com/c-sharp/fastest-way-to-check-if-a-string-occurs-within-a-string 
+                    //(((infoMFT.nombres.Length - (infoMFT.nombres.Replace(nombreBuscado.ToLower(), String.Empty)).Length) / nombreBuscado.Length) > 0)
+                    // que hacer:
+                    //if (infoMFT.nombres.Contains(nombreBuscado.ToLower()))
                     BuscaCoincidenciasInfo(infoMFT);
                     bool result = false;
                     foreach (string nombreBuscado in buscadasList)
                     {
+                        //Comprueba si tiene path como filtro
                         bool incluyePath = false;
                         string pathBuscado = "";
                         string nombreArchivo = nombreBuscado;
@@ -1825,6 +1991,7 @@ namespace MFT_fileoper
                             pathBuscado = auxNombreBuscado.Substring(0, auxNombreBuscado.LastIndexOf("\\")).ToLower();
                             nombreArchivo = auxNombreBuscado.Substring(auxNombreBuscado.LastIndexOf("\\") + 1, auxNombreBuscado.Length - auxNombreBuscado.LastIndexOf("\\") - 1);
                         }
+                        // Para las busquedas de directorios
                         int countSubdirs = nombreBuscado.Split('\\').Length - 1 + recursion;
                         for (int i = 0; i < infoMFT.nombreFN.Count; i++)
                         {
@@ -1836,6 +2003,7 @@ namespace MFT_fileoper
                                 {
                                     bool pathCorrecto = false;
                                     string pathNombre = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).ToLower();
+                                    // Para que salga el propio directorio coincidente hay que sumar uno en la primera comprobación (le faltaria el \ final)
                                     if ((newNombreBuscado.Split('\\').Length <= (pathNombre.Split('\\').Length) + 1) && ((pathNombre.Split('\\').Length - 1) <= countSubdirs))
                                     {
                                         newNombreBuscado = newNombreBuscado + "\\";
@@ -1880,6 +2048,7 @@ namespace MFT_fileoper
                                         {
                                             nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
                                             if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0)
+                                            //if (nombPath.StartsWith(pathBuscado))
                                             {
                                                 pathCorrecto = true;
                                             }
@@ -1922,6 +2091,7 @@ namespace MFT_fileoper
                                 {
                                     bool pathCorrecto = false;
                                     string pathNombre = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).ToLower();
+                                    // Para que salga el directorio coincidente hay que sumar 1 en la primera comprobación (le falta un \ final)
                                     if ((nombreBuscado.Split('\\').Length <= (pathNombre.Split('\\').Length + 1)) & ((pathNombre.Split('\\').Length - 1) <= countSubdirs))
                                     {
                                         if (pathNombre == "\\\\")
@@ -1965,6 +2135,7 @@ namespace MFT_fileoper
                                         {
                                             nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
                                             if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0)
+                                            //if (nombPath.StartsWith(pathBuscado))
                                             {
                                                 pathCorrecto = true;
                                             }
@@ -2016,6 +2187,7 @@ namespace MFT_fileoper
                                         {
                                             nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
                                             if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0)
+                                            //if (nombPath.StartsWith(pathBuscado))
                                             {
                                                 pathCorrecto = true;
                                             }
@@ -2060,6 +2232,7 @@ namespace MFT_fileoper
                                         {
                                             nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
                                             if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0)
+                                            //if (nombPath.StartsWith(pathBuscado))
                                             {
                                                 pathCorrecto = true;
                                             }
@@ -2111,6 +2284,7 @@ namespace MFT_fileoper
             {
                 entryInfo= readBin.ReadBytes(1024);
                 UInt32 mftSig = BitConverter.ToUInt32(entryInfo, 0);
+                //no valid record
                 if (mftSig != FILE_SIG)
                 {
                     pos += 1024;
@@ -2123,10 +2297,16 @@ namespace MFT_fileoper
                     pos += 1024;
                     continue;
                 }
+                //Console.WriteLine(offsetBytesMFT.ToString("X"));
+                // Según parece es más rápido http://cc.davelozinski.com/c-sharp/fastest-way-to-check-if-a-string-occurs-within-a-string 
+                //(((infoMFT.nombres.Length - (infoMFT.nombres.Replace(nombreBuscado.ToLower(), String.Empty)).Length) / nombreBuscado.Length) > 0)
+                // que hacer:
+                //if (infoMFT.nombres.Contains(nombreBuscado.ToLower()))
                 BuscaCoincidenciasInfo(infoMFT);
                 bool result = false;
                 foreach (string nombreBuscado in buscadasList)
                 {
+                    //Comprueba si tiene path como filtro
                     bool incluyePath = false;
                     string pathBuscado = "";
                     string nombreArchivo = nombreBuscado;
@@ -2138,6 +2318,7 @@ namespace MFT_fileoper
                         pathBuscado = auxNombreBuscado.Substring(0, auxNombreBuscado.LastIndexOf("\\")).ToLower();
                         nombreArchivo = auxNombreBuscado.Substring(auxNombreBuscado.LastIndexOf("\\") + 1, auxNombreBuscado.Length - auxNombreBuscado.LastIndexOf("\\") - 1);
                     }
+                    // Para las busquedas de directorios
                     int countSubdirs = nombreBuscado.Split('\\').Length - 1 + recursion;
                     for (int i = 0; i < infoMFT.nombreFN.Count; i++)
                     {
@@ -2149,6 +2330,7 @@ namespace MFT_fileoper
                             {
                                 bool pathCorrecto = false;
                                 string pathNombre = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).ToLower();
+                                // Para que salga el propio directorio coincidente hay que sumar uno en la primera comprobación (le faltaria el \ final)
                                 if ((newNombreBuscado.Split('\\').Length <= (pathNombre.Split('\\').Length) + 1) & ((pathNombre.Split('\\').Length - 1) <= countSubdirs))
                                 {
                                     newNombreBuscado = newNombreBuscado + "\\";
@@ -2193,6 +2375,7 @@ namespace MFT_fileoper
                                     {
                                         nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
                                         if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0)
+                                        //if (nombPath.StartsWith(pathBuscado))
                                         {
                                             pathCorrecto = true;
                                         }
@@ -2235,6 +2418,7 @@ namespace MFT_fileoper
                             {
                                 bool pathCorrecto = false;
                                 string pathNombre = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).ToLower();
+                                // Para que salga el directorio coincidente hay que sumar 1 en la primera comprobación (le falta un \ final)
                                 if ((nombreBuscado.Split('\\').Length <= (pathNombre.Split('\\').Length + 1)) & ((pathNombre.Split('\\').Length - 1) <= countSubdirs))
                                 {
                                     if (pathNombre == "\\\\")
@@ -2278,6 +2462,7 @@ namespace MFT_fileoper
                                     {
                                         nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
                                         if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0)
+                                        //if (nombPath.StartsWith(pathBuscado))
                                         {
                                             pathCorrecto = true;
                                         }
@@ -2329,6 +2514,7 @@ namespace MFT_fileoper
                                     {
                                         nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
                                         if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0)
+                                        //if (nombPath.StartsWith(pathBuscado))
                                         {
                                             pathCorrecto = true;
                                         }
@@ -2373,6 +2559,7 @@ namespace MFT_fileoper
                                     {
                                         nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
                                         if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0)
+                                        //if (nombPath.StartsWith(pathBuscado))
                                         {
                                             pathCorrecto = true;
                                         }
@@ -2526,6 +2713,7 @@ namespace MFT_fileoper
             public byte[] rawRecord = new byte[1024];
             public UInt32 mftSig;
             public byte[] mftSeqN = new byte[2];
+            //public string nombres;
             public Int32 offsetToAttribute;
             public Int16 valFileFlags;
             public string fileFlags;
@@ -2536,6 +2724,7 @@ namespace MFT_fileoper
             public Int16 attributeLength = 0;
             public byte attributeIsResident;
             public Int16 attributeNameLength;
+            //public bool attributeIsAds;
             public Int16 attributeNameOffset;
             public UInt16 attributeID;
             public Int16 attributeContentLength;
@@ -2551,6 +2740,7 @@ namespace MFT_fileoper
             public List<string> dateAccessed_FN = new List<string>();
             public List<string> nombreFN = new List<string>();
             public Dictionary<string,string> deduplicarFNtimeline = new Dictionary<string,string>();
+            //public List<int> tipoNombreFN = new List<int>(); //No va. He encontrado tipos repetidos y deben ser únicos
             public UInt64 realFileSize = 0;
             public UInt64 diskFileSize = 0;
             public string dataBase = "";
@@ -2613,6 +2803,7 @@ namespace MFT_fileoper
                         break;
                 }
                 usedSize = BitConverter.ToInt32(rawRecord, US_OFFSET);
+                //Compruebo y valido por sectores en vez de por el total ¿por que no?
                 if (BitConverter.ToUInt16(fixupSeqArray, 0) == BitConverter.ToUInt16(rawRecord, 510))
                 {
                     Array.Copy(fixupSeqArray, 2, rawRecord, 510, 2);
@@ -2629,12 +2820,15 @@ namespace MFT_fileoper
                 if (recordValido) { Array.Resize(ref rawRecord, usedSize); }
                 fileReferenceToBaseFile = BitConverter.ToUInt32(rawRecord, FRTBF_OFFSET);
                 recordNumber = BitConverter.ToUInt32(rawRecord, RN_OFFSET);
+                // Para buscar en bruto y a lo bruto:
+                //nombres = (Regex.Replace(Encoding.Unicode.GetString(rawRecord), @"[^\u001F-\u007F]", string.Empty)).ToLower();
             }
 
             public void MFT_NEXT_ATTRIBUTE()
             {
                 offsetToAttribute += attributeLength;
                 attributeSig = BitConverter.ToUInt32(rawRecord, offsetToAttribute);
+                //No interesa inspeccionar más allá del DATA attribute
                 if (attributeSig <= DATA_SIG)
                 {
                     attributeLength = BitConverter.ToInt16(rawRecord, offsetToAttribute + A_LE_OFFSET);
@@ -2657,6 +2851,7 @@ namespace MFT_fileoper
 
             public void MFT_SHOW_DATA()
             {
+                //// Para Solo MFT dictio
                 Dictionary<string, char[]> dictioFechasSI = new Dictionary<string, char[]>();
                 if ((!CommandLine.Parameters.ContainsKey("t")) && (!CommandLine.Parameters.ContainsKey("s")))
                 {
@@ -2678,6 +2873,7 @@ namespace MFT_fileoper
                 string longName = "";
                 for (int i = 0; i < nombreFN.Count; i++)
                 {
+                    //Lee el FRN del directorio que lo contiene y busca en el diccionario de USN
                     nombreFN[i] = Path.Combine(GetPath.soloMFTGetFullyQualifiedPath(parentDirectoryFN), nombreFN[i]);
                     if ((valFileFlags == 0) || (valFileFlags == 2))
                     {
@@ -2685,6 +2881,7 @@ namespace MFT_fileoper
                     }
                     if ((!CommandLine.Parameters.ContainsKey("t")) && (!CommandLine.Parameters.ContainsKey("s")))
                     {
+                        //Console.WriteLine("{0}[{1}]{2}",fileFlags, tipoNombreFN[i].ToString(), nombreFN[i]);
                         Console.WriteLine("{0}{1}{2}", fileFlags, "  ", nombreFN[i]);
                     }
                     longName = longName.Length < nombreFN[i].Length ? nombreFN[i] : longName;
@@ -2723,6 +2920,7 @@ namespace MFT_fileoper
                     deduplicarFNtimeline.Clear();
                     for (int i = 0; i < dateCreated_FN.Count; i++)
                     {
+                        //El diccionario debe recrearse para cada FN
                         Dictionary<string, char[]> dictioFechas = new Dictionary<string, char[]>();
                         imprimeFechas(ref dictioFechas, "FN", longName, dateModificado_FN[i], dateAccessed_FN[i], dateMFTModif_FN[i], dateCreated_FN[i]);
                     }
@@ -2747,10 +2945,12 @@ namespace MFT_fileoper
 
             public void MFT_SHOW_DATA_TL()
             {
+                //// Para Solo MFT dictio
                 Dictionary<string, char[]> dictioFechasSI = new Dictionary<string, char[]>();
                 string longName = "?";
                 for (int i = 0; i < nombreFN.Count; i++)
                 {
+                    //Lee el FRN del directorio que lo contiene y busca en el diccionario de USN
                     nombreFN[i] = Path.Combine(GetPath.soloMFTGetFullyQualifiedPath(parentDirectoryFN), nombreFN[i]);
                     if ((valFileFlags == 0) || (valFileFlags == 2))
                     {
@@ -2762,9 +2962,12 @@ namespace MFT_fileoper
                 deduplicarFNtimeline.Clear();
                 for (int i = 0; i < dateCreated_FN.Count; i++)
                 {
+                    //El diccionario debe recrearse para cada FN
                     Dictionary<string, char[]> dictioFechas = new Dictionary<string, char[]>();
                     imprimeFechas(ref dictioFechas, "FN", longName, dateModificado_FN[i], dateAccessed_FN[i], dateMFTModif_FN[i], dateCreated_FN[i]);
                 }
+                //using (var writer = new StreamWriter(nameOut, true))
+                //{
                     foreach (var datas in diccIDDataADSInfo)
                     {
                         var enumerator = dictioFechasSI.GetEnumerator();
@@ -2774,6 +2977,7 @@ namespace MFT_fileoper
                             writer.WriteLine("{0}\tSI[{1}]\t{2}:{3}\t{4}\t{5}", pair.Key, new string(pair.Value), longName, datas.Value.name, recordNumber, datas.Value.size.ToString("N0"));
                         }
                     }
+                //}
             }
 
             public void imprimeFechas(ref Dictionary<string, char[]> dictioFechas, string tipoFecha, string _longName, string dateModificado, string dateAccessed, string dateMFTModif, string dateCreated)
@@ -2787,26 +2991,45 @@ namespace MFT_fileoper
                 {
                     dictioFechas.Add(dateAccessed, ".A..".ToCharArray()); 
                 }
+                //List<string> keyList = new List<string>(dictioFechas.Keys);
                 if (dictioFechas.ContainsKey(dateMFTModif))
                 {
                     dictioFechas[dateMFTModif][2] = 'C';
+                    //foreach (var clave in keyList) 
+                    //{
+                    //    if (string.CompareOrdinal(clave, dateMFTModif) == 0) 
+                    //    {
+                    //        dictioFechas[clave][2] = 'C';
+                    //    } 
+                    //}
                 }
                 else 
                 {
                     dictioFechas.Add(dateMFTModif, "..C.".ToCharArray());
                 }
+                //keyList = new List<string>(dictioFechas.Keys);
                 if (dictioFechas.ContainsKey(dateCreated))
                 {
                     dictioFechas[dateCreated][3] = 'B';
+                    //foreach (var clave in keyList) 
+                    //{
+                    //    if (string.CompareOrdinal(clave, dateCreated) == 0)
+                    //    {
+                    //        dictioFechas[clave][3] = 'B';
+                    //    }
+                    //}
                 }
                 else 
                 {
                     dictioFechas.Add(dateCreated, "...B".ToCharArray());
                 }
                 var enumerator = dictioFechas.GetEnumerator();
+                //using (var writer = new StreamWriter(nameOut, true))
+                //{
                     while (enumerator.MoveNext())
                     {
                         var pair = enumerator.Current;
+                        //deduplicar es necesario porque hay varios FN que pueden coincidir al obligarles a usar el mismo nombre de archivo/directorio
                         string tempo = string.Join("_", new string[] { pair.Key, tipoFecha, new string(pair.Value), _longName });
                         if (!deduplicarFNtimeline.ContainsKey(tempo))
                         {
@@ -2821,6 +3044,7 @@ namespace MFT_fileoper
                             deduplicarFNtimeline.Add(tempo, "");
                         }
                     }
+                //}
             }
 
             public void GET_RESIDENT_DATA()
@@ -2876,6 +3100,7 @@ namespace MFT_fileoper
                 runlist = recordActual.rawRecord[runlistOffset];
                 runlistLowNibble = (byte)(runlist & 0x0F);
                 runlistHighNibble = (byte)((runlist & 0xF0) >> 4);
+                //Console.Write("\n-Nibbles: " + runlistHighNibble + " - " + runlistLowNibble);
                 offsetBytesMFT = 0;
                 isSparse = runlistHighNibble == 0 ? true : false; //sparse runlists
             }
@@ -2898,28 +3123,35 @@ namespace MFT_fileoper
             {
                 if (!isSparse)
                 {
+                    //Calculando el run length
                     Array.Copy(arrayPositivos, runLengthComplt, 4);
                     byte[] runLengthLeido = new byte[runlistLowNibble];
                     Array.Copy(recordActual.rawRecord, runlistOffset + 1, runLengthLeido, 0, runlistLowNibble);
                     Array.Copy(runLengthLeido, runLengthComplt, runlistLowNibble);
                     runLength = BitConverter.ToUInt32(runLengthComplt, 0);
+                    //Console.Write(" -> runLength: " + runLength);
+                    //Calculando el run offset
                     byte[] runOffsetLeido = new byte[runlistHighNibble];
                     Array.Copy(recordActual.rawRecord, runlistOffset + 1 + runlistLowNibble, runOffsetLeido, 0, runlistHighNibble);
                     if ((int)runOffsetLeido[runlistHighNibble - 1] > 127)
                     {
+                        //Es negativo
                         int runOffset;
                         Array.Copy(arrayNegativos, runOffsetComplt, 4);
                         Array.Copy(runOffsetLeido, runOffsetComplt, runlistHighNibble);
                         runOffset = BitConverter.ToInt32(runOffsetComplt, 0);
                         offsetBytesMFT = offsetBytesMFT + (ulong)(runOffset * bytesxSector * sectorxCluster);
+                        //Console.WriteLine(" -> runOffset (neg): " + runOffset);
                     }
                     else
                     {
+                        //Es positivo
                         uint runOffset;
                         Array.Copy(arrayPositivos, runOffsetComplt, 4);
                         Array.Copy(runOffsetLeido, runOffsetComplt, runlistHighNibble);
                         runOffset = BitConverter.ToUInt32(runOffsetComplt, 0);
                         offsetBytesMFT = offsetBytesMFT + (ulong)runOffset * (ulong)bytesxSector * (ulong)sectorxCluster;
+                        //Console.WriteLine(" -> runOffset: " + runOffset);
                     }
                 }
                 runlistOffset = runlistOffset + 1 + runlistLowNibble + runlistHighNibble;
@@ -2930,6 +3162,7 @@ namespace MFT_fileoper
                 runlist = newRunlist;
                 runlistLowNibble = (byte)(runlist & 0x0F);
                 runlistHighNibble = (byte)((runlist & 0xF0) >> 4);
+                //Console.Write("\n-Nibbles: " + runlistHighNibble + " - " + runlistLowNibble);
                 isSparse = runlistHighNibble == 0 ? true : false; //sparse runlists
             }
         }
@@ -2951,6 +3184,7 @@ namespace MFT_fileoper
                 Int32 prevOffsetToAttribute = entryData.offsetToAttribute;
                 entryData.attributeLength = entryData.attributeContentOffset;
                 ProcesaAttrList(entryData, Convert.ToInt32(entryData.attributeContentLength));
+                //Restauro los valores modificados
                 entryData.attributeLength = prevAttributeLength;
                 entryData.attributeSig = 0x20;
                 entryData.offsetToAttribute = prevOffsetToAttribute;
@@ -2979,6 +3213,7 @@ namespace MFT_fileoper
                         }
                         dataRunlist.NEXTDATARUNLIST(attListNoResident.rawRecord[dataRunlist.runlistOffset]);
                     }
+                    //Restauro los valores modificados
                     entryData.rawRecord = prevRawRecord;
                     entryData.attributeLength = prevAttributeLength;
                     entryData.attributeSig = 0x20;
@@ -3011,6 +3246,7 @@ namespace MFT_fileoper
                         Int16 intprevAttributeLength = entryData.attributeLength;
                         Int32 intprevOffsetToAttribute = entryData.offsetToAttribute;
                         GetPath.FileNameAndParentFrn localiza = GetPath.soloMFTDictOffsets[attRecordNumber];
+                        //***
                         byte[] refRecord = ReadRaw(localiza.RecordOffset, 1024);
                         MFT_ENTRY infoRefRecord = new MFT_ENTRY(refRecord);
                         infoRefRecord.MFT_NEXT_ATTRIBUTE();
@@ -3029,6 +3265,7 @@ namespace MFT_fileoper
                         entryData.dateMFTModif_FN.AddRange(infoRefRecord.dateMFTModif_FN);
                         entryData.dateCreated_FN.AddRange(infoRefRecord.dateCreated_FN);
                         entryData.parentDirectoryFN = infoRefRecord.parentDirectoryFN;
+                        //***
                         entryData.attributeLength = intprevAttributeLength;
                         entryData.attributeSig = 0x30;
                         entryData.offsetToAttribute = intprevOffsetToAttribute;
@@ -3040,6 +3277,7 @@ namespace MFT_fileoper
                         Int16 intprevAttributeLength = entryData.attributeLength;
                         Int32 intprevOffsetToAttribute = entryData.offsetToAttribute;
                         GetPath.FileNameAndParentFrn localiza = GetPath.soloMFTDictOffsets[attRecordNumber];
+                        //***
                         byte[] refRecord = ReadRaw(localiza.RecordOffset, 1024);
                         MFT_ENTRY infoRefRecord = new MFT_ENTRY(refRecord);
                         infoRefRecord.MFT_NEXT_ATTRIBUTE();
@@ -3063,6 +3301,8 @@ namespace MFT_fileoper
                         }
                         foreach (var resultados in infoRefRecord.diccIDDataADSInfo)
                         { // Siempre debe apuntar la referencia al record origen porque es donde está la info de los clusters que ocupa
+                            // hay AL que contienen varias referencias al mismo ADS como: $usnjrnl:$j  
+//no he podido comprobar si funciona bien en vivo ya que volvio a cambiar. En offline SI.
                             dataADSInfo esta;
                             if (entryData.diccIDDataADSInfo.TryGetValue(entryData.recordNumber + resultados.Key.Substring(resultados.Key.IndexOf(":")), out esta))
                             {
@@ -3073,6 +3313,7 @@ namespace MFT_fileoper
                                 entryData.diccIDDataADSInfo.Add(entryData.recordNumber + resultados.Key.Substring(resultados.Key.IndexOf(":")), resultados.Value);
                             }
                         }
+                        //***
                         entryData.attributeLength = intprevAttributeLength;
                         entryData.attributeSig = 0x30;
                         entryData.offsetToAttribute = intprevOffsetToAttribute;
@@ -3089,6 +3330,8 @@ namespace MFT_fileoper
             int fnNameLen = entryData.rawRecord[datesOffset + 56];
             string nombreEncontrado = Encoding.Unicode.GetString(entryData.rawRecord, datesOffset + 58, fnNameLen * 2);
             entryData.nombreFN.Add(nombreEncontrado);
+            //int fnNameType = entryData.rawRecord[datesOffset + 57];
+            //entryData.tipoNombreFN.Add(fnNameType);
             entryData.dateCreated_FN.Add(GetDateTimeFromFiletime((long)BitConverter.ToUInt32(entryData.rawRecord, datesOffset + 4), BitConverter.ToUInt32(entryData.rawRecord, datesOffset)));
             entryData.dateModificado_FN.Add(GetDateTimeFromFiletime((long)BitConverter.ToUInt32(entryData.rawRecord, datesOffset + 12), BitConverter.ToUInt32(entryData.rawRecord, datesOffset + 8)));
             entryData.dateMFTModif_FN.Add(GetDateTimeFromFiletime((long)BitConverter.ToUInt32(entryData.rawRecord, datesOffset + 20), BitConverter.ToUInt32(entryData.rawRecord, datesOffset + 16)));
@@ -3111,6 +3354,7 @@ namespace MFT_fileoper
         {
             if (entryData.attributeNameLength != 0) //Solo para los ADS,s
             {
+                //entryData.attributeIsAds = true;
                 byte adsNameLen = entryData.rawRecord[entryData.offsetToAttribute + 9];
                 UInt16 adsNameOffset = entryData.rawRecord[entryData.offsetToAttribute + 10];
                 string nombreEncontrado = Encoding.Unicode.GetString(entryData.rawRecord, entryData.offsetToAttribute + adsNameOffset, adsNameLen * 2);
@@ -3201,23 +3445,21 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 Usage:
-mftf.exe -h      ----- This help.
-================ Direct copy by filename:
-mftf.exe -cp (source_file) -n (destination_file)
-================ Actions:
-mftf.exe [source] [options]
-=========== Source:
+_____ Help: mftf.exe -h
+_____ Direct copy by filename: mftf.exe -cp (src_file) -n (dest_file)
+_____ Actions: mftf.exe [source] [options]
+________ [source]:
  -d drive_letter       ----- Logical unit.
  -o MFT_file           ----- Offline $MFT file.
-=========== Options:
-======== Timeline of the MFT:
+________ [options]:
+___________ Timeline of the MFT:
  -tl
-======== Search:
-* Common options:
- -x          ----- Save the results in a file in order to use the option -c.
- -t          ----- Display the results in a timeline format.
- -s          ----- Display only the file name.
-==== Logical string search:
+___________ Search:
+* Common search options:
+ -x     - Save the results in a file in order to use the option -cl.
+ -t     - Display the results in a timeline format.
+ -s     - Display only the file name.
+_______________ Logical string search:
  -f ""string1|string2 with spaces|string3<""
  -f ""folder\string""
                         | The results are filtered using the string ""folder"".
@@ -3227,20 +3469,20 @@ mftf.exe [source] [options]
                         | < at the end of ""string"" for an exact coincidence.
  -ff file.txt   ----- The strings to search for are in file.txt. One string per
                       line. Can use <.
-==== Raw search
+_______________ Raw search
  -fr string     ----- Search in the 1024 bytes of each MFT record.
-==== Root based search: files and folders under the tree
+_______________ Root based search: files and folders under the tree
  -fd ""\\Dir1\dir2""          -----  It will match any directories like dir2...
  -fd ""\\Dir1\dir2\Dir3<""    -----  Can use < with the last directory.
  -r N                       -----  Recursion level (number). Default is 0.
-==== ADS,s search
+_______________ ADS,s search
  -fads         ----- Find all the ADS,s.
-======== Information:
+___________ Information:
  -i record_number    -----  Show information of the MFT record.
  -w record_number    -----  Write on screen the 1024 bytes of the MFT record.
-======== Copy:
+___________ Copy:
  -cn record_number     Copy the 1024 bytes of the MFT record to this folder.
-==== For live systems or logical units:
+_______________ For live systems or logical units:
  -cr ""ref1[|ref2..]""    -----| Copy the referenced file/ads to this folder.
                              | Use | as separator.
  -cl list.txt        -----| Copy all the files referenced in the file list.txt.

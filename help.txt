@@ -1,50 +1,48 @@
 Usage:
-mftf.exe -h      ----- This help.
-================ Direct copy by filename:
-mftf.exe -cp (source_file) -n (destination_file)
-================ Actions:
-mftf.exe [source] [options]
-=========== Source:
- -d drive_letter       ----- Search/copy files from this logical unit.
- -o file               ----- Search files from this offline $MFT file.
-=========== Options:
-======== Timeline of the MFT:
+_____ Help: mftf.exe -h
+_____ Direct copy by filename: mftf.exe -cp (src_file) -n (dest_file)
+_____ Actions: mftf.exe [source] [options]
+________ [source]:
+ -d drive_letter       ----- Logical unit.
+ -o MFT_file           ----- Offline $MFT file.
+________ [options]:
+___________ Timeline of the MFT:
  -tl
-======== Search:
-* Common options:
- -x          ----- Save the results in a file in order to use the option -c.
- -t          ----- Display the results in a timeline format.
- -s          ----- Display only the file name.
-==== Logical string search:
- -f "string1|string2 with spaces|string3<"
- -f "folder\string"
-                        | The results are filtered using the string "folder".
+___________ Search:
+* Common search options:
+ -x     - Save the results in a file in order to use the option -cl.
+ -t     - Display the results in a timeline format.
+ -s     - Display only the file name.
+_______________ Logical string search:
+ -f ""string1|string2 with spaces|string3<""
+ -f ""folder\string""
+                        | The results are filtered using the string ""folder"".
                    |    | The match is always case insensitive.
-                   └----| " as delimiters for the whole group of strings.
+                   └----| "" as delimiters for the whole group of strings.
                         | | is the separator.
-                        | < at the end of "string" for an exact coincidence.
+                        | < at the end of ""string"" for an exact coincidence.
  -ff file.txt   ----- The strings to search for are in file.txt. One string per
                       line. Can use <.
-==== Raw search
+_______________ Raw search
  -fr string     ----- Search in the 1024 bytes of each MFT record.
-==== Root based search: files and folders under the tree
- -fd "\\Dir1\dir2"          -----  It will match any directories like dir2...
- -fd "\\Dir1\dir2\Dir3<"    -----  Can use < with the last directory.
+_______________ Root based search: files and folders under the tree
+ -fd ""\\Dir1\dir2""          -----  It will match any directories like dir2...
+ -fd ""\\Dir1\dir2\Dir3<""    -----  Can use < with the last directory.
  -r N                       -----  Recursion level (number). Default is 0.
-==== ADS,s search
+_______________ ADS,s search
  -fads         ----- Find all the ADS,s.
-======== Information:
+___________ Information:
  -i record_number    -----  Show information of the MFT record.
  -w record_number    -----  Write on screen the 1024 bytes of the MFT record.
-======== Copy:
+___________ Copy:
  -cn record_number     Copy the 1024 bytes of the MFT record to this folder.
-==== For live systems or logical units:
- -cr "ref1[|ref2..]"    -----| Copy the referenced file/ads to this folder.
+_______________ For live systems or logical units:
+ -cr ""ref1[|ref2..]""    -----| Copy the referenced file/ads to this folder.
                              | Use | as separator.
  -cl list.txt        -----| Copy all the files referenced in the file list.txt.
                           | Each line MUST start with: reference + [TAB].
 Examples:
 > mftf.exe -cp c:\$MFT -n d:\maleta\mft.bin
 > mftf.exe -o mft.bin -tl
-> mftf.exe -d e -f "svchost|mvui.dll|string with spaces|exact match<" -t
-> mftf.exe -d e -c 4292:128-1
+> mftf.exe -d e -f ""svchost|mvui.dll|string with spaces|exact match<"" -t
+> mftf.exe -d e -c 4292:128-1"
