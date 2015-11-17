@@ -3445,48 +3445,51 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 Usage:
-_____ Help: mftf.exe -h
-_____ Direct copy by filename: mftf.exe -cp (src_file) -n (dest_file)
-_____ Actions: mftf.exe [source] [options]
-________ [source]:
- -d drive_letter       ----- Logical unit.
- -o MFT_file           ----- Offline $MFT file.
-________ [options]:
-___________ Timeline of the MFT:
- -tl
-___________ Search:
-* Common search options:
- -x     - Save the results in a file in order to use the option -cl.
- -t     - Display the results in a timeline format.
- -s     - Display only the file name.
-_______________ Logical string search:
- -f ""string1|string2 with spaces|string3<""
- -f ""folder\string""
-                        | The results are filtered using the string ""folder"".
-                   |    | The match is always case insensitive.
-                   └----| "" as delimiters for the whole group of strings.
-                        | | is the separator.
-                        | < at the end of ""string"" for an exact coincidence.
- -ff file.txt   ----- The strings to search for are in file.txt. One string per
-                      line. Can use <.
-_______________ Raw search
- -fr string     ----- Search in the 1024 bytes of each MFT record.
-_______________ Root based search: files and folders under the tree
- -fd ""\\Dir1\dir2""          -----  It will match any directories like dir2...
- -fd ""\\Dir1\dir2\Dir3<""    -----  Can use < with the last directory.
- -r N                       -----  Recursion level (number). Default is 0.
-_______________ ADS,s search
- -fads         ----- Find all the ADS,s.
-___________ Information:
- -i record_number    -----  Show information of the MFT record.
- -w record_number    -----  Write on screen the 1024 bytes of the MFT record.
-___________ Copy:
- -cn record_number     Copy the 1024 bytes of the MFT record to this folder.
-_______________ For live systems or logical units:
- -cr ""ref1[|ref2..]""    -----| Copy the referenced file/ads to this folder.
-                             | Use | as separator.
- -cl list.txt        -----| Copy all the files referenced in the file list.txt.
-                          | Each line MUST start with: reference + [TAB].
+ 1. Help: 
+        mftf.exe -h
+ 2. Direct copy by filename: 
+        mftf.exe -cp (src_file) -n (dest_file)
+ 3. Actions:
+        mftf.exe [source] [options]
+ 3.1. Source:
+            -d drive_letter       ----- Logical unit.
+            -o MFT_file           ----- Offline $MFT file.
+ 3.2. Options:
+ 3.2.1. Timeline of the MFT:
+            -tl
+ 3.2.2. Searching:
+        Common search options:
+        -x     - Save the results in a file in order to use the option -cl.
+        -t     - Display the results in a timeline format.
+        -s     - Display only the file name.
+ 3.2.2.1. Logical string search:
+        -f ""string1|string2 with spaces|string3<""
+        -f ""folder\string""
+                     | The results are filtered using the string ""folder"".
+                |    | The match is always case insensitive.
+                └----| "" as delimiters for the whole group of strings.
+                     | | is the separator.
+                     | < at the end of ""string"" for an exact coincidence.
+        -ff file.txt   ----- The strings to search for are in file.txt.
+                             One string per line. Can use <.
+ 3.2.2.2. Raw search
+        -fr string     ----- Search in the 1024 bytes of each MFT record.
+ 3.2.2.3. Root based search: files and folders under the tree
+        -fd ""\\Dir1\dir2""          -----  It will match any directories like dir2...
+        -fd ""\\Dir1\dir2\Dir3<""    -----  Can use < with the last directory.
+        -r N                       -----  Recursion level (number). Default is 0.
+ 3.2.2.4. ADS,s search
+        -fads         ----- Find all the ADS,s.
+ 3.2.3. Information:
+        -i record_number    -----  Show information of the MFT record.
+        -w record_number    -----  Write on screen the 1024 bytes of the MFT record.
+ 3.2.4. Copy:
+        -cn record_number     Copy the 1024 bytes of the MFT record to this folder.
+ 3.2.4.1. For live systems or logical units:
+        -cr ""ref1[|ref2..]""    -----| Copy the referenced file/ads to this folder.
+                                    | Use | as separator.
+        -cl list.txt        -----| Copy all the files referenced in the file list.txt.
+                                 | Each line MUST start with: reference + [TAB].
 Examples:
 > mftf.exe -cp c:\$MFT -n d:\maleta\mft.bin
 > mftf.exe -o mft.bin -tl
