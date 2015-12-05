@@ -52,27 +52,41 @@ namespace MFT_fileoper
             // Command line parsing
             CommandLine = new Arguments(args);
             if (CommandLine["h"] != null || args.Length < 3) { Console.WriteLine(LaAyuda()); }
-            else if ((!string.IsNullOrEmpty(CommandLine["cp"])) && (!string.IsNullOrEmpty(CommandLine["n"])))
+            else if ((!string.IsNullOrEmpty(CommandLine["ip"])) || ((!string.IsNullOrEmpty(CommandLine["cp"])) && (!string.IsNullOrEmpty(CommandLine["n"]))))
             {
-                try
-                { // forma de comprobar el path
-                    if (!File.Exists(CommandLine["n"]))
-                    {
-                        using (File.Create(CommandLine["n"])) { };
-                        File.Delete(CommandLine["n"]);
+                if (string.IsNullOrEmpty(CommandLine["ip"]))
+                {
+                    try
+                    { // forma de comprobar el path
+                        if (!File.Exists(CommandLine["n"]))
+                        {
+                            using (File.Create(CommandLine["n"])) { };
+                            File.Delete(CommandLine["n"]);
+                        }
+                        else
+                        {
+                            Console.WriteLine("\nError: destination file exists.");
+                            return;
+                        }
                     }
-                    else { 
-                        Console.WriteLine("\nError: destination file exists.");
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Error: can't create the file {0}\n{1}", CommandLine["n"], e.Message.ToString());
                         return;
                     }
                 }
-                catch (Exception e)
-                {
-                    Console.WriteLine("Error: can't create the file {0}\n{1}", CommandLine["n"], e.Message.ToString());
-                    return;
-                }
                 UInt64 mftOffset = 0;
-                letraDisco = CommandLine["cp"].Substring(0, 1) + ":";
+                string objet = "";
+                if (!string.IsNullOrEmpty(CommandLine["cp"]))
+                {
+                    letraDisco = CommandLine["cp"].Substring(0, 1) + ":";
+                    objet = CommandLine["cp"];
+                }
+                else
+                {
+                    letraDisco = CommandLine["ip"].Substring(0, 1) + ":";
+                    objet = CommandLine["ip"];
+                }
                 origen = string.Format("\\\\.\\{0}", letraDisco);
                 GetPath getFullPath = new GetPath();
                 getFullPath.Drive = origen;
@@ -95,7 +109,6 @@ namespace MFT_fileoper
                     bool ok = false;
                     bool buscADS = false;
                     string[] nomYads = null;
-                    string objet = CommandLine["cp"];
                     string busc = objet.Substring(objet.LastIndexOf("\\") + 1).ToLower();
                     string pathBuscado = letraDisco + "\\";
                     if (objet.LastIndexOf("\\") > 2)
@@ -116,23 +129,32 @@ namespace MFT_fileoper
                             string nombPath = GetPath.soloMFTGetFullyQualifiedPath(pagina.Value.ParentFrn).ToLower();
                             if (((nombPath.Length - nombPath.Replace(pathBuscado, String.Empty).Length) / nombPath.Length) == 1)
                             {
-                                if (!buscADS)
+                                if (!string.IsNullOrEmpty(CommandLine["ip"]))
                                 {
-                                    //BuscaMFTRecord(pagina.Key.ToString() + ":128-0", CommandLine["n"]);
-                                    // no todos los archivos tienen el ID 0
-                                    BuscaMFTRecordDesdePath(pagina.Key, mftOffset, CommandLine["n"]);
-                                    if (copiado) { Console.WriteLine("Copy finished: {0}", CommandLine["n"]); }
-                                    break;
+                                    refCoincid.Add(pagina.Key);
+                                    GetCoinciDetalles();
+                                    copiado = true;
                                 }
                                 else
                                 {
-                                    foreach (var adsItem in diccRecordADS[pagina.Key])
+                                    if (!buscADS)
                                     {
-                                        if (adsItem.Key.ToLower() == nomYads[1].ToLower())
+                                        //BuscaMFTRecord(pagina.Key.ToString() + ":128-0", CommandLine["n"]);
+                                        // no todos los archivos tienen el ID 0
+                                        BuscaMFTRecordDesdePath(pagina.Key, mftOffset, CommandLine["n"]);
+                                        if (copiado) { Console.WriteLine("Copy finished: {0}", CommandLine["n"]); }
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        foreach (var adsItem in diccRecordADS[pagina.Key])
                                         {
-                                            BuscaMFTRecord(pagina.Key.ToString() + ":128-" + adsItem.Value.ToString(), CommandLine["n"]);
-                                            if (copiado) { Console.WriteLine("Copy finished: {0}", CommandLine["n"]); }
-                                            break;
+                                            if (adsItem.Key.ToLower() == nomYads[1].ToLower())
+                                            {
+                                                BuscaMFTRecord(pagina.Key.ToString() + ":128-" + adsItem.Value.ToString(), CommandLine["n"]);
+                                                if (copiado) { Console.WriteLine("Copy finished: {0}", CommandLine["n"]); }
+                                                break;
+                                            }
                                         }
                                     }
                                 }
