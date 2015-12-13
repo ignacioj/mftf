@@ -1,4 +1,4 @@
-Search and copy files and ADS,s parsing the $MFT and reading directly the clusters.
+Search and copy files and ADS,s parsing the $MFT and reading directly the data from the clusters.
 
 Option -tl to make the timeline ($SI and $FN times) of a live or offline $MFT ( 1 minute 800k records).
 
@@ -10,6 +10,8 @@ It can copy files by filename or files and ADS,s using the references provided i
 
 The copy is made by reading the data from the clusters so that you can copy protected system files or files in use.
 (Imports from "kernel32.dll":	CloseHandle, CreateFile, ReadFile, SetFilePointerEx).
+
+The initial delay is due to the creation of a dictionary with full file paths.
 
 Examples:
 
