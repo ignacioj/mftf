@@ -1,6 +1,8 @@
 Search and copy files and ADS,s parsing the $MFT and reading directly the data from the clusters.
 
-Option -tl to make the timeline ($SI and $FN times) of a live or offline $MFT ( 1 minute 800k records).
+Option -tl to make the timeline ($SI and $FN times) of a live or offline $MFT ( 30 seconds 900k records).
+
+You can filter the output searching from and/or to a date.
 
 The tool can parse the $MFT from a live system, from a mounted (read-only included) logical drive or from a copy of the $MFT.
 
