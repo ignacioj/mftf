@@ -3457,7 +3457,7 @@ namespace MFT_fileoper
 
         public static string GetDateTimeFromFiletime(long highBytes, uint lowBytes)
         {
-            string formato = "yyyy/MM/dd HH:mm:ss.fffffff";
+            string formato = "yyyy'/'MM'/'dd HH:mm:ss.fffffff";
             long returnDateTime = highBytes << 32;
             returnDateTime = returnDateTime | lowBytes;
             if (returnDateTime >= DateTime.MinValue.Ticks && returnDateTime <= DateTime.MaxValue.Ticks)
