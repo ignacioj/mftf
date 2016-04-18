@@ -223,25 +223,30 @@ namespace MFT_fileoper
                 }
                 if (origenValido)
                 {
-                    if (CommandLine["tl"] != null)
+                    if ((CommandLine["tl"] != null) || (CommandLine["l2t"] != null))
                     {
-                        if (!File.Exists("MFTF_timeline.csv"))
+                        if (CommandLine["tf"] != null)
                         {
-                            if (CommandLine["tf"] != null)
+                            if (Regex.IsMatch(CommandLine["tf"], "^[0-9]{4}/[0-9]{2}/[0-9]{2}$"))
                             {
-                                if (Regex.IsMatch(CommandLine["tf"], "^[0-9]{4}/[0-9]{2}/[0-9]{2}$"))
-                                {
-                                    desdeCuando = CommandLine["tf"];
-                                }
+                                desdeCuando = CommandLine["tf"];
                             }
-                            if (CommandLine["tt"] != null)
+                        }
+                        if (CommandLine["tt"] != null)
+                        {
+                            if (Regex.IsMatch(CommandLine["tt"], "^[0-9]{4}/[0-9]{2}/[0-9]{2}$"))
                             {
-                                if (Regex.IsMatch(CommandLine["tt"], "^[0-9]{4}/[0-9]{2}/[0-9]{2}$"))
-                                {
-                                    hastaCuando = CommandLine["tt"];
-                                }
+                                hastaCuando = CommandLine["tt"];
                             }
-                            nameOut = "MFTF_timeline.csv";
+                        }
+                        string encabezado = "Date\tTime\t[MACB]\tfilename\trecord\tsize";
+                        if (CommandLine["l2t"] != null)
+                        {
+                            encabezado = "datetime,timestamp_desc,source,source_long,message,parser,display_name,tag,store_number,store_index";
+                        }
+                        nameOut = "MFTF_timeline-" + desdeCuando.Replace("/","") + "-" + hastaCuando.Replace("/","") + ".csv";
+                        if (!File.Exists(nameOut))
+                        {
                             Console.Write("\nTimeline of the MFT.\n");
                             //if (CommandLine["o"] == null)
                             //{
@@ -251,12 +256,12 @@ namespace MFT_fileoper
                             //chapuza para la rutina de impresion
                             if (!CommandLine.Parameters.ContainsKey("x")) { CommandLine.Parameters.Add("x", ""); }
                             writer = new StreamWriter(nameOut, true);
-                            writer.WriteLine("Date\tTime\t[MACB]\tfilename\trecord\tsize");
+                            writer.WriteLine(encabezado);
                             GeneraTimelineO(mftOffset);
                         }
                         else
                         {
-                            Console.WriteLine("\n=== MFTF_timeline.csv already exists ===");
+                            Console.WriteLine("\n=== " + nameOut + " already exists ===");
                         }
                     }
                     else if (CommandLine["fads"] != null)
@@ -1032,7 +1037,7 @@ namespace MFT_fileoper
 
         public static unsafe void ReadRawV(byte[] buffer, ulong _offset, UInt32 numBytesToRead = 512)
         {
-            if ((CommandLine["o"] != null) || (CommandLine["tl"] != null))
+            if ((CommandLine["o"] != null) || (CommandLine["tl"] != null) || (CommandLine["l2t"] != null))
             {
             }
             else
@@ -3019,11 +3024,16 @@ namespace MFT_fileoper
                     {
                         var pair = enumerator.Current;
                         string[] fecha = pair.Key.Split(' ');
-                        //writer.WriteLine("{0}\tSI[{1}]\t{2}:{3}\t{4}\t{5}", pair.Key, new string(pair.Value), longName, datas.Value.name, recordNumber, datas.Value.size.ToString("N0"));
                         if ((string.Compare(desdeCuando, fecha[0]) <= 0) && (string.Compare(hastaCuando, fecha[0]) >= 0))
                         {
-                            writer.WriteLine("{0}\t{1}\tSI[{2}]\t{3}:{4}\t{5}\t{6}", fecha[0], fecha[1], new string(pair.Value), longName, datas.Value.name, recordNumber, datas.Value.size.ToString("N0"));
-                        }
+                            if (CommandLine["tl"] != null)
+                            {
+                                writer.WriteLine("{0}\t{1}\tSI[{2}]\t{3}:{4}\t{5}\t{6}", fecha[0], fecha[1], new string(pair.Value), longName, datas.Value.name, recordNumber, datas.Value.size.ToString("N0"));
+                            }
+                            else {
+                                writer.WriteLine("{0}T{1},SI[{2}],MFT,-,{3}:{4} [size: {5}],mftf,-,-,-,{6}", fecha[0], fecha[1], new string(pair.Value), longName, datas.Value.name, datas.Value.size.ToString("N0"), recordNumber);
+                            }
+						}
                     }
                 }
             }
@@ -3075,7 +3085,6 @@ namespace MFT_fileoper
                 while (enumerator.MoveNext())
                 {
                     var pair = enumerator.Current;
-                    //deduplicar es necesario porque hay varios FN que pueden coincidir al obligarles a usar el mismo nombre de archivo/directorio
                     string tempo = string.Join("_", new string[] { pair.Key, tipoFecha, new string(pair.Value), _longName });
                     if (!deduplicarFNtimeline.ContainsKey(tempo))
                     {
@@ -3088,7 +3097,13 @@ namespace MFT_fileoper
                         {
                             if ((string.Compare(desdeCuando, fecha[0]) <= 0) && (string.Compare(hastaCuando, fecha[0]) >= 0))
                             {
-                                writer.WriteLine("{0}\t{1}\t{2}[{3}]\t{4}\t{5}\t{6}", fecha[0], fecha[1], tipoFecha, new string(pair.Value), _longName, recordNumber, realFileSize.ToString("N0"));
+                                if (CommandLine["tl"] != null)
+                                {
+                                    writer.WriteLine("{0}\t{1}\t{2}[{3}]\t{4}\t{5}\t{6}", fecha[0], fecha[1], tipoFecha, new string(pair.Value), _longName, recordNumber, realFileSize.ToString("N0"));
+                                }
+                                else {
+                                    writer.WriteLine("{0}T{1},{2}[{3}],MFT,-,{4} [size: {5}],mftf,-,-,-,{6}", fecha[0], fecha[1], tipoFecha, new string(pair.Value), _longName, realFileSize.ToString("N0"), recordNumber);
+                                }
                             }
                         }
                         deduplicarFNtimeline.Add(tempo, "");
@@ -3510,9 +3525,12 @@ Usage:
 
  3.2. OPTIONS:
  3.2.1. Timeline of the MFT:
-            -tl [-tf yyyy/MM/dd ] [-tt yyyy/MM/dd ]
-                -tf Filter from this date
-                -tt Filter to date
+        -tl [-tf yyyy/MM/dd ] [-tt yyyy/MM/dd ]
+            Format: Date  Time  [MACB]  filename  record  size
+        -l2t [-tf yyyy/MM/dd ] [-tt yyyy/MM/dd ]
+            Format: datetime,timestamp_desc,source,source_long,message,parser,display_name,tag,store_number,store_index
+            [-tf Filter from this date]
+            [-tt Filter to date]
 
  3.2.2. Searching:
         Common search options:
