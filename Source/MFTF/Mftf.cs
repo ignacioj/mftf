@@ -45,9 +45,11 @@ namespace MFT_fileoper
         public static BinaryReader readBin;
         // tamaño del archivo MFT
         public static int tam;
+        public static bool todo;
 
         static void Main(string[] args)
         {
+            todo = false;
             empieza = DateTime.Now;
             List<string> buscadasList = new List<string>();
             List<string> referencesToCopyList = new List<string>();
@@ -242,7 +244,7 @@ namespace MFT_fileoper
                         string encabezado = "Date\tTime\t[MACB]\tfilename\trecord\tsize";
                         if (CommandLine["l2t"] != null)
                         {
-                            encabezado = "datetime,timestamp_desc,source,source_long,message,parser,display_name,tag,store_number,store_index";
+                            encabezado = "date,time,timezone,MACB,source,sourcetype,type,user,host,short,desc,version,filename,inode,notes,format,extra";
                         }
                         nameOut = "MFTF_timeline-" + desdeCuando.Replace("/","") + "-" + hastaCuando.Replace("/","") + ".csv";
                         if (!File.Exists(nameOut))
@@ -344,7 +346,13 @@ namespace MFT_fileoper
                             Console.Write("\nMatch directory:");
                             Console.WriteLine(CommandLine["fd"]);
                             Console.WriteLine("Recursion: " + recursion.ToString());
-                            buscadasList.Add(letraDisco  + CommandLine["fd"].Substring(1));
+                            char[] delimiters = new char[] { '|' };
+                            string[] words = CommandLine["fd"].Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
+                            foreach (string aux in words)
+                            {
+                                buscadasList.Add(letraDisco + aux.Substring(1));
+                            }
+                            Console.WriteLine(String.Join("|", words));
                             //Console.WriteLine("COMIENZA MakeMFTDict: " + DateTime.Now);
                             MakeSoloMFTDict(mftOffset);
                             //Console.WriteLine("\nFIN DE MakeMFTDict: " + DateTime.Now);
@@ -2025,6 +2033,7 @@ namespace MFT_fileoper
                     bool result = false;
                     foreach (string nombreBuscado in buscadasList)
                     {
+                        todo = false;
                         //Comprueba si tiene path como filtro
                         bool incluyePath = false;
                         string pathBuscado = "";
@@ -2037,6 +2046,7 @@ namespace MFT_fileoper
                             pathBuscado = auxNombreBuscado.Substring(0, auxNombreBuscado.LastIndexOf("\\")).Replace("\\", String.Empty).ToLower();
                             nombreArchivo = auxNombreBuscado.Substring(auxNombreBuscado.LastIndexOf("\\") + 1, auxNombreBuscado.Length - auxNombreBuscado.LastIndexOf("\\") - 1);
                         }
+                        if (nombreArchivo == "*") { todo = true; }
                         // Para las busquedas de directorios
                         int countSubdirs = nombreBuscado.Split('\\').Length - 1 + recursion;
                         for (int i = 0; i < infoMFT.nombreFN.Count; i++)
@@ -2174,7 +2184,7 @@ namespace MFT_fileoper
                                 }
                                 else
                                 {
-                                    if (((infoMFT.nombreFN[i].Length - (infoMFT.nombreFN[i].ToLower().Replace(nombreArchivo.ToLower(), String.Empty)).Length) / nombreArchivo.Length) > 0)
+                                    if (todo || (((infoMFT.nombreFN[i].Length - (infoMFT.nombreFN[i].ToLower().Replace(nombreArchivo.ToLower(), String.Empty)).Length) / nombreArchivo.Length) > 0))
                                     {
                                         bool pathCorrecto = false;
                                         if (incluyePath)
@@ -2271,7 +2281,7 @@ namespace MFT_fileoper
                                 }
                                 else
                                 {
-                                    if (((datas.Value.name.Length - (datas.Value.name.ToLower().Replace(nombreArchivo.ToLower(), String.Empty)).Length) / nombreArchivo.Length) > 0)
+                                    if ( todo || (((datas.Value.name.Length - (datas.Value.name.ToLower().Replace(nombreArchivo.ToLower(), String.Empty)).Length) / nombreArchivo.Length) > 0))
                                     {
                                         bool pathCorrecto = false;
                                         if (incluyePath)
@@ -2352,6 +2362,7 @@ namespace MFT_fileoper
                 bool result = false;
                 foreach (string nombreBuscado in buscadasList)
                 {
+                    todo = false;
                     //Comprueba si tiene path como filtro
                     bool incluyePath = false;
                     string pathBuscado = "";
@@ -2364,6 +2375,7 @@ namespace MFT_fileoper
                         pathBuscado = auxNombreBuscado.Substring(0, auxNombreBuscado.LastIndexOf("\\")).Replace("\\", String.Empty).ToLower();
                         nombreArchivo = auxNombreBuscado.Substring(auxNombreBuscado.LastIndexOf("\\") + 1, auxNombreBuscado.Length - auxNombreBuscado.LastIndexOf("\\") - 1);
                     }
+                    if (nombreArchivo == "*") { todo = true; }
                     // Para las busquedas de directorios
                     int countSubdirs = nombreBuscado.Split('\\').Length - 1 + recursion;
                     for (int i = 0; i < infoMFT.nombreFN.Count; i++)
@@ -2501,7 +2513,7 @@ namespace MFT_fileoper
                             }
                             else
                             {
-                                if (((infoMFT.nombreFN[i].Length - (infoMFT.nombreFN[i].ToLower().Replace(nombreArchivo.ToLower(), String.Empty)).Length) / nombreArchivo.Length) > 0)
+                                if (todo || (((infoMFT.nombreFN[i].Length - (infoMFT.nombreFN[i].ToLower().Replace(nombreArchivo.ToLower(), String.Empty)).Length) / nombreArchivo.Length) > 0))
                                 {
                                     bool pathCorrecto = false;
                                     if (incluyePath)
@@ -2598,7 +2610,7 @@ namespace MFT_fileoper
                             }
                             else
                             {
-                                if (((datas.Value.name.Length - (datas.Value.name.ToLower().Replace(nombreArchivo.ToLower(), String.Empty)).Length) / nombreArchivo.Length) > 0)
+                                if (todo || (((datas.Value.name.Length - (datas.Value.name.ToLower().Replace(nombreArchivo.ToLower(), String.Empty)).Length) / nombreArchivo.Length) > 0))
                                 {
                                     bool pathCorrecto = false;
                                     if (incluyePath)
@@ -3031,9 +3043,10 @@ namespace MFT_fileoper
                                 writer.WriteLine("{0}\t{1}\tSI[{2}]\t{3}:{4}\t{5}\t{6}", fecha[0], fecha[1], new string(pair.Value), longName, datas.Value.name, recordNumber, datas.Value.size.ToString("N0"));
                             }
                             else {
-                                writer.WriteLine("{0}T{1},SI[{2}],MFT,-,{3}:{4} [size: {5}],mftf,-,-,-,{6}", fecha[0], fecha[1], new string(pair.Value), longName, datas.Value.name, datas.Value.size.ToString("N0"), recordNumber);
+                                // "date,time,timezone,MACB,source,sourcetype,type,user,host,short, desc, version, filename, inode, notes, format, extra"
+                                writer.WriteLine("{0},{1},UTC,[{2}],MFT_FILETIME,SI,{7},-,-,\"{3}:{4}\",\"{3}:{4}\",1,\"{3}:{4}\",{6},-,-,Size: [{5} B]", fecha[0], fecha[1], new string(pair.Value), longName, datas.Value.name, datas.Value.size.ToString("G", System.Globalization.CultureInfo.InvariantCulture), recordNumber, fileFlags);
                             }
-						}
+                        }
                     }
                 }
             }
@@ -3102,7 +3115,8 @@ namespace MFT_fileoper
                                     writer.WriteLine("{0}\t{1}\t{2}[{3}]\t{4}\t{5}\t{6}", fecha[0], fecha[1], tipoFecha, new string(pair.Value), _longName, recordNumber, realFileSize.ToString("N0"));
                                 }
                                 else {
-                                    writer.WriteLine("{0}T{1},{2}[{3}],MFT,-,{4} [size: {5}],mftf,-,-,-,{6}", fecha[0], fecha[1], tipoFecha, new string(pair.Value), _longName, realFileSize.ToString("N0"), recordNumber);
+                                    // "date,time,timezone,MACB,source,sourcetype,type,user,host,short, desc, version, filename, inode, notes, format, extra"
+                                    writer.WriteLine("{0},{1},UTC,[{3}],MFT_FILETIME,{2},{7},-,-,\"{4}\",\"{4}\",1,\"{4}\",{6},-,-,Size: [{5} B]", fecha[0], fecha[1], tipoFecha, new string(pair.Value), _longName, realFileSize.ToString("G", System.Globalization.CultureInfo.InvariantCulture), recordNumber, fileFlags);
                                 }
                             }
                         }
@@ -3528,7 +3542,7 @@ Usage:
         -tl [-tf yyyy/MM/dd ] [-tt yyyy/MM/dd ]
             Format: Date  Time  [MACB]  filename  record  size
         -l2t [-tf yyyy/MM/dd ] [-tt yyyy/MM/dd ]
-            Format: datetime,timestamp_desc,source,source_long,message,parser,display_name,tag,store_number,store_index
+            Format: date,time,timezone,MACB,source,sourcetype,type,user,host,short,desc,version,filename,inode,notes,format,extra
             [-tf Filter from this date]
             [-tt Filter to date]
 
@@ -3541,11 +3555,13 @@ Usage:
  3.2.2.1. Logical string search:
         -f ""string1|string2 with spaces|string3<""
         -f ""folder\string""
+        -f ""folder\*""
                      | The results are filtered using the string ""folder"".
-                |    | The match is always case insensitive.
-                └----| "" as delimiters for the whole group of strings.
+                     | The match is always case insensitive.
+                     | "" as delimiters for the whole group of strings.
                      | | is the separator.
                      | < at the end of ""string"" for an exact coincidence.
+                     | Use * to search any string 
         -ff file.txt   ----- The strings to search for are in file.txt.
                              One string per line. You can use <.
 
@@ -3553,9 +3569,11 @@ Usage:
         -fr string     ----- Search in the 1024 bytes of each MFT record.
 
  3.2.2.3. Root based search: files and folders under the tree
-        -fd ""\\Dir1\dir2""          -----  It will match any directories like dir2...
-        -fd ""\\Dir1\dir2\Dir3<""    -----  Can use < with the last directory.
-        -r N                       -----  Recursion level (number). Default is 0.
+        -fd ""\\Dir1\dir2|\\Dir1\dir3<"" 
+                      | It will match any directories like dir2...
+                      | Use < for an exact coincidence.
+                      | Use | as separator
+        -r N     -----  Recursion level (number). Default is 0.
 
  3.2.2.4. ADS,s search
         -fads         ----- Find all the ADS,s.
