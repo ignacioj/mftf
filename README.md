@@ -3,7 +3,7 @@ Search and copy files and ADS,s parsing the $MFT and reading directly the data f
 Two timeline formats suported to make the timeline ($SI and $FN times) of a live or offline $MFT ( 30 seconds 900k records):
 
 	Option -tl: Date\tTime\t[MACB]\tfilename\trecord\tsize
-	Option -l2t (Plaso/log2timeline): datetime,timestamp_desc,source,source_long,message,parser,display_name,tag,store_number,store_index
+	Option -l2t (Plaso/log2timeline): date,time,timezone,MACB,source,sourcetype,type,user,host,short,desc,version,filename,inode,notes,format,extra
 
 You can filter the output searching from and/or to a date.
 
