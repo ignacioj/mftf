@@ -51,7 +51,14 @@ Writing run length: 109,260,800 [Real file size: 18,988,733,296 bytes].
 Writing run length: 33,017,856 [Real file size: 18,988,733,296 bytes].
 
 ...........
+Using the tl format and SHA1:
 
+mftf -d c -f shadow1 -tl -sha1
+
+	2017/05/05,18:56:50.2977651,SI[MACB],C:\Program Files\soda_shadow1.ffm,113504,588,C6646B28833C4FFB7BC4E10256C134D290C7D419
+	2016/09/15,12:03:29.0766109,FN[M...],C:\Program Files\soda_shadow1.ffm,113504,588,C6646B28833C4FFB7BC4E10256C134D290C7D419
+	2016/09/15,11:56:41.9917419,FN[.A.B],C:\Program Files\soda_shadow1.ffm,113504,588,C6646B28833C4FFB7BC4E10256C134D290C7D419
+	2017/04/13,19:09:28.2249511,FN[..C.],C:\Program Files\soda_shadow1.ffm,113504,588,C6646B28833C4FFB7BC4E10256C134D290C7D419
 
 In this example the file has 4 $FN attributes and two ADS and the Attribute List points to another record.
 

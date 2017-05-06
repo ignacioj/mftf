@@ -1,4 +1,4 @@
-﻿mftf.exe v.2.5
+﻿mftf.exe v.2.6
 The tool can parse the $MFT from a live system, from a mounted (read-only
 included) logical drive or from a copy of the $MFT.
 It can copy files or ADS,s using the references provided in the results.
@@ -58,13 +58,15 @@ Usage: mftf.exe SOURCE ACTIONS [OPTIONS]
  2.2.4. ACTION: ADS,s search
         -fads         ----- Find all the ADS,s.
  2.2.5. Search OPTIONS:
-        Timeline: if no search is specified the entire MFT will be in the output. Two formats available:
-        -tl
+       > Timeline mode: if no search is specified the entire MFT will be in the output. Two formats available:
+         -tl
             Format: Date  Time  [MACB]  filename  record  size
-        -l2t
+         -l2t
             Format: date,time,timezone,MACB,source,sourcetype,type,user,host,short,desc,version,filename,inode,notes,format,extra
-        [-tf yyyy/MM/dd ] Filter from this date
-        [-tt yyyy/MM/dd ] to this date
+         [-tf yyyy/MM/dd ] Filter from this date
+         [-tt yyyy/MM/dd ] to this date
+         [-sha1] Add the SHA1 to the output
+      > No timeline mode:
         -x     - Save the results in a file in order to use the option -cl.
         -s     - Display only the file name.
 
