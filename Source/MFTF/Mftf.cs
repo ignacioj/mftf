@@ -90,7 +90,7 @@ namespace MFT_fileoper
                     }
                     else
                     {
-                        letraDisco = CommandLine["ip"].Substring(0, 1) + ":";
+                        letraDisco = CommandLine["ip"].Substring(0, 1).ToLower() + ":";
                         objet = CommandLine["ip"];
                     }
                     origen = string.Format("\\\\.\\{0}", letraDisco);
