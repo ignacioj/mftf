@@ -1181,10 +1181,15 @@ namespace MFT_fileoper
                                     infoMFT.MFT_NEXT_ATTRIBUTE_VALIDO();
                                     int datesOffset = infoMFT.offsetToAttribute + infoMFT.attributeContentOffset + 8;
                                     int fnNameLen = infoMFT.rawRecord[datesOffset + 56];
-                                    if ((fnNameLen > nombre.Length) || (nombre == " "))
+                                    int nameNamespace = infoMFT.rawRecord[datesOffset + 57];
+                                    if (nombre == " ") nombre = Encoding.Unicode.GetString(infoMFT.rawRecord, datesOffset + 58, fnNameLen * 2);
+                                    else
                                     {
-                                        nombre = Encoding.Unicode.GetString(infoMFT.rawRecord, datesOffset + 58, fnNameLen * 2);
-                                    }
+                                        if ((nameNamespace != 2) && (nameNamespace != 0)) //namespace Win32&DOS (3) o Win32 (1)
+                                        {
+                                            if (fnNameLen > nombre.Length) nombre = Encoding.Unicode.GetString(infoMFT.rawRecord, datesOffset + 58, fnNameLen * 2);
+                                        }
+                                    } 
                                     parentDirectory = BitConverter.ToUInt32(infoMFT.rawRecord, infoMFT.offsetToAttribute + infoMFT.attributeContentOffset);
                                 }
                                 else if (infoMFT.attributeSig == DATA_SIG)
