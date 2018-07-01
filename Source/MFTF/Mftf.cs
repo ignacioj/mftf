@@ -199,7 +199,7 @@ namespace MFT_fileoper
                                 }
                                 else
                                 {
-                                    bytesxRecord = 512;
+                                    bytesxRecord = 1024;
                                     Console.WriteLine("\nOption -b not specified: assuming 1024 bytes per file record.");
                                 }
                             }

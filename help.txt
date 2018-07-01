@@ -30,7 +30,7 @@ mftf.exe SOURCE ACTIONS [OPTIONS]
 
 SOURCE:
   -d drive_letter      Logical unit.
-  -o MFT_file [-b bytesxcluster]    Offline $MFT file. Default bytes per cluster is 512 bytes.
+  -o MFT_file [-b bytesxrecord]    Offline $MFT file. Default bytes per MFT record is 1024 bytes.
 
 ACTIONS: COPY.
   -cr ""ref1[|ref2..]""                         Copy the referenced file/ads to this folder. Use | as separator.
