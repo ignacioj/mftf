@@ -23,7 +23,7 @@ Examples:
 Sparse chunks are not copied. This is very useful when copying the $Usnjrnl:$J. Here the real size of the $J was 19 Gb but 
 only 470 Mb had content while the rest were sparse chunks. The final file was only 470 Mb in size:
 
->mftf -cp c:\$extend\$usnjrnl:$j -n d:\data\$j.dat
+>mftf -cp c:\\$extend\$usnjrnl:$j -n d:\data\$j.dat
 
 	Volume serial number: 2314228289244169585
 	Sector size: 4096 bytes
