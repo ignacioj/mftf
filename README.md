@@ -25,31 +25,21 @@ only 470 Mb had content while the rest were sparse chunks. The final file was on
 
 >mftf -cp c:\$extend\$usnjrnl:$j -n d:\data\$j.dat
 
-FS: NTFS
-
-Sector size: 512 bytes
-
-Cluster size: 8 sectors
-
+Volume serial number: 2314228289244169585
+Sector size: 4096 bytes
+Cluster size: 4096 bytes
+Record size: 4096 bytes
 Starting cluster of the MFT: 4 [Offset: 0x4000]
-
 Records: 602,919
-
-
 Writing run length: 0 [Real file size: 18,988,733,296 bytes].
-
 Sparse chunk not saved: 0 bytes.
-
 Writing run length: 0 [Real file size: 18,988,733,296 bytes].
-
 Sparse chunk not saved: 0 bytes.
-
 Writing run length: 69,926,912 [Real file size: 18,988,733,296 bytes].
-
 Writing run length: 109,260,800 [Real file size: 18,988,733,296 bytes].
-
 Writing run length: 33,017,856 [Real file size: 18,988,733,296 bytes].
-
+File copied to: d:\data\$j.dat
+Copy finished: d:\data\$j.dat
 ...........
 Using the tl format and SHA1:
 
@@ -105,10 +95,10 @@ Inspect resident files:
 	
 mftf -d d -w 36112
 
-	Unit: D:
-	FS: NTFS
+	Volume serial number: 1601228289244169585
 	Sector size: 512 bytes
-	Cluster size: 8 sectors
+	Cluster size: 4096 bytes
+	Record size: 1024 bytes
 	Starting cluster of the MFT: 786432 [Offset: 0xC0000000]
 	000 - 46 49 4C 45 30 00 03 00 ED FB 2F 21 00 00 00 00 FILE0...íû/!....
 	010 - 02 00 01 00 38 00 01 00 20 02 00 00 00 04 00 00 ....8... .......
