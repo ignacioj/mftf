@@ -13,6 +13,7 @@ namespace MFT_fileoper
         public static Dictionary<UInt32, FileNameAndParentFrn> soloMFTDictOffsets = new Dictionary<UInt32, FileNameAndParentFrn>();
         private string _drive = "";
 
+        1 OBTENCION DEL PATH COMPLETO
         public static string soloMFTGetFullyQualifiedPath(UInt32 frn)
         {
             string retval = string.Empty; ;
@@ -31,6 +32,7 @@ namespace MFT_fileoper
                         }
                         else
                         {
+                            Console.WriteLine("File or Directory's '{0}' parent frn not found", retval);
                             break;
                         }
                     }
@@ -42,6 +44,7 @@ namespace MFT_fileoper
             }
             return retval;
         }
+        2 OBTENCION DEL PATH COMPLETO
 
         public string Drive
         {
@@ -49,6 +52,39 @@ namespace MFT_fileoper
             set { _drive = value; }
         }
 
+        public static UInt32 GetMFTRecordFromPath(string filePath, ref bool valido)
+        {
+            IntPtr hRoot = PInvokeWin32.CreateFile(filePath,
+                0,
+                PInvokeWin32.FILE_SHARE_READ | PInvokeWin32.FILE_SHARE_WRITE,
+                PInvokeWin32.FILE_SHARE_READ,
+                IntPtr.Zero,
+                PInvokeWin32.OPEN_EXISTING,
+                PInvokeWin32.FILE_FLAG_BACKUP_SEMANTICS,
+                IntPtr.Zero);
+            if (hRoot.ToInt32() != PInvokeWin32.INVALID_HANDLE_VALUE)
+            {
+                PInvokeWin32.BY_HANDLE_FILE_INFORMATION fi = new PInvokeWin32.BY_HANDLE_FILE_INFORMATION();
+                bool bRtn = PInvokeWin32.GetFileInformationByHandle(hRoot, out fi);
+                if (bRtn)
+                {
+                    return fi.FileIndexLow;
+                }
+                else
+                {
+                    Console.WriteLine("\nThe path was not found.");
+                    valido = false;
+                    return 0;
+                }
+                PInvokeWin32.CloseHandle(hRoot);
+            }
+            else
+            {
+                Console.WriteLine("\nUnable to find the path.");
+                valido = false;
+                return 0;
+            }
+        }
 
         [Serializable]
         public class FileNameAndParentFrn
@@ -96,6 +132,19 @@ namespace MFT_fileoper
                 _recordOffset = recordOffset;
             }
             #endregion
+        }
+
+        public class DictionaryCollection<TKey, UInt32, FileNameAndParentFrn> : Dictionary<TKey, Dictionary<UInt32, FileNameAndParentFrn>>
+        {
+            public void Add(TKey dictionaryKey, UInt32 key, FileNameAndParentFrn value)
+            {
+                if (!ContainsKey(dictionaryKey)) Add(dictionaryKey, new Dictionary<UInt32, FileNameAndParentFrn>());
+                this[dictionaryKey].Add(key, value);
+            }
+            public FileNameAndParentFrn Get(TKey dictionaryKey, UInt32 key)
+            {
+                return this[dictionaryKey][key];
+            }
         }
     }
 }
