@@ -10,21 +10,21 @@ namespace MFT_fileoper
 {
     class GetPath
     {
-        public static Dictionary<UInt32, FileNameAndParentFrn> soloMFTDictOffsets = new Dictionary<UInt32, FileNameAndParentFrn>();
+        //public static Dictionary<UInt32, FileNameAndParentFrn> soloMFTDictOffsets = new Dictionary<UInt32, FileNameAndParentFrn>();
         private string _drive = "";
 
-        public static string soloMFTGetFullyQualifiedPath(UInt32 frn)
+        public static string soloMFTGetFullyQualifiedPath(UInt32 frn, Dictionary<UInt32, FileNameAndParentFrn> dictioSources)
         {
             string retval = string.Empty; ;
             FileNameAndParentFrn fnFRN = null;
             if (frn >= 0)
             {
-                if (soloMFTDictOffsets.TryGetValue(frn, out fnFRN))
+                if (dictioSources.TryGetValue(frn, out fnFRN))
                 {
                     retval = fnFRN.Name;
                     while (fnFRN.ParentFrn != 0)
                     {
-                        if (soloMFTDictOffsets.TryGetValue(fnFRN.ParentFrn, out fnFRN))
+                        if (dictioSources.TryGetValue(fnFRN.ParentFrn, out fnFRN))
                         {
                             string name = fnFRN.Name;
                             retval = Path.Combine(name, retval);

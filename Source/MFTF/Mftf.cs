@@ -149,7 +149,7 @@ namespace MFT_fileoper
                             {
                                 if (pagina.Value.Name.ToLower() == busc)
                                 {
-                                    string nombPath = GetPath.soloMFTGetFullyQualifiedPath(pagina.Value.ParentFrn).ToLower();
+                                    string nombPath = GetPath.soloMFTGetFullyQualifiedPath(pagina.Value.ParentFrn, dictSources[origenId]).ToLower();
                                     if (((nombPath.Length - nombPath.Replace(pathBuscado, String.Empty).Length) / nombPath.Length) == 1)
                                     {
                                         if (!string.IsNullOrEmpty(CommandLine["ip"]))
@@ -2170,7 +2170,7 @@ namespace MFT_fileoper
                 string longName = "";
                 for (int i = 0; i < nombreFN.Count; i++)
                 {
-                    nombreFN[i] = Path.Combine(GetPath.soloMFTGetFullyQualifiedPath(parentDirectoryFN), nombreFN[i]);
+                    nombreFN[i] = Path.Combine(GetPath.soloMFTGetFullyQualifiedPath(parentDirectoryFN, dictSources[origenId]), nombreFN[i]);
                     if ((valFileFlags == 0) || (valFileFlags == 2))
                     {
                         nombreFN[i] = string.Concat("?", nombreFN[i]);
@@ -2728,7 +2728,7 @@ namespace MFT_fileoper
                         if (CommandLine["fd"] != null)
                         {
                             bool pathCorrecto = false;
-                            string pathNombre = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).ToLower();
+                            string pathNombre = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN, dictSources[origenId]).ToLower();
                             if ((newNombreBuscado.Split('\\').Length <= (pathNombre.Split('\\').Length) + 1) && ((pathNombre.Split('\\').Length - 1) <= countSubdirs))
                             {
                                 newNombreBuscado = newNombreBuscado + "\\";
@@ -2752,7 +2752,7 @@ namespace MFT_fileoper
                                 bool pathCorrecto = false;
                                 if (incluyePath)
                                 {
-                                    nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
+                                    nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN, dictSources[origenId]).Replace("\\", String.Empty).ToLower();
                                     if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0) pathCorrecto = true;
                                 }
                                 else pathCorrecto = true;
@@ -2773,7 +2773,7 @@ namespace MFT_fileoper
                         if (CommandLine["fd"] != null)
                         {
                             bool pathCorrecto = false;
-                            string pathNombre = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).ToLower();
+                            string pathNombre = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN, dictSources[origenId]).ToLower();
                             if ((nombreBuscado.Split('\\').Length <= (pathNombre.Split('\\').Length + 1)) & ((pathNombre.Split('\\').Length - 1) <= countSubdirs))
                             {
                                 if (pathNombre == "\\\\") pathNombre = pathNombre + infoMFT.nombreFN[i];
@@ -2793,7 +2793,7 @@ namespace MFT_fileoper
                                 bool pathCorrecto = false;
                                 if (incluyePath)
                                 {
-                                    nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
+                                    nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN, dictSources[origenId]).Replace("\\", String.Empty).ToLower();
                                     if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0) pathCorrecto = true;
                                 }
                                 else pathCorrecto = true;
@@ -2825,7 +2825,7 @@ namespace MFT_fileoper
                                 bool pathCorrecto = false;
                                 if (incluyePath)
                                 {
-                                    nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
+                                    nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN, dictSources[origenId]).Replace("\\", String.Empty).ToLower();
                                     if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0) pathCorrecto = true;
                                 }
                                 else pathCorrecto = true;
@@ -2847,7 +2847,7 @@ namespace MFT_fileoper
                                 bool pathCorrecto = false;
                                 if (incluyePath)
                                 {
-                                    nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN).Replace("\\", String.Empty).ToLower();
+                                    nombPath = GetPath.soloMFTGetFullyQualifiedPath(infoMFT.parentDirectoryFN, dictSources[origenId]).Replace("\\", String.Empty).ToLower();
                                     if (((nombPath.Length - (nombPath.Replace(pathBuscado, String.Empty)).Length) / pathBuscado.Length) > 0) pathCorrecto = true;
                                 }
                                 else pathCorrecto = true;
