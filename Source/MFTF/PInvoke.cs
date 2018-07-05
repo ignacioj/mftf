@@ -33,10 +33,8 @@ namespace MFT_fileoper
                                                   uint dwCreationDisposition, uint dwFlagsAndAttributes,
                                                   IntPtr hTemplateFile);
 
-/// <summary>
-/// para advanced format
-/// </summary>
-///
+
+
         [DllImport("kernel32")]
         public static extern bool DeviceIoControl
             (IntPtr deviceHandle, uint ioControlCode,
@@ -45,6 +43,9 @@ namespace MFT_fileoper
              ref int bytesReturned, IntPtr overlapped);
 
         public const int FSCTL_GET_NTFS_VOLUME_DATA = 0x00090064;
+
+
+
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct NTFS_VOLUME_DATA_BUFFER
@@ -65,11 +66,6 @@ namespace MFT_fileoper
             public UInt64 MftZoneEnd;
         }
 
-/// <summary>
-/// fin advanced format
-/// </summary>
-
-        // Used to read in a file
 
         [DllImport("kernel32.dll")]
         public static extern bool ReadFile(
@@ -79,14 +75,12 @@ namespace MFT_fileoper
             out uint lpNumberOfBytesRead,
             IntPtr lpOverlapped);
 
-        // Used to set the offset in file to start reading
         [DllImport("kernel32.dll")]
         public static extern bool SetFilePointerEx(
             IntPtr hFile,
             ulong liDistanceToMove,
             out long lpNewFilePointer,
             uint dwMoveMethod);
-
 
     }
 }
