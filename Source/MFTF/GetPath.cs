@@ -12,6 +12,7 @@ namespace MFT_fileoper
     {
         public static Dictionary<UInt32, FileNameAndParentFrn> soloMFTDictOffsets = new Dictionary<UInt32, FileNameAndParentFrn>();
         private string _drive = "";
+
         public static string soloMFTGetFullyQualifiedPath(UInt32 frn)
         {
             string retval = string.Empty; ;
@@ -48,6 +49,8 @@ namespace MFT_fileoper
             set { _drive = value; }
         }
 
+
+        [Serializable]
         public class FileNameAndParentFrn
         {
             #region Properties
@@ -93,6 +96,19 @@ namespace MFT_fileoper
                 _recordOffset = recordOffset;
             }
             #endregion
+        }
+
+        public class DictionaryCollection<TKey, UInt32, FileNameAndParentFrn> : Dictionary<TKey, Dictionary<UInt32, FileNameAndParentFrn>>
+        {
+            public void Add(TKey dictionaryKey, UInt32 key, FileNameAndParentFrn value)
+            {
+                if (!ContainsKey(dictionaryKey)) Add(dictionaryKey, new Dictionary<UInt32, FileNameAndParentFrn>());
+                this[dictionaryKey].Add(key, value);
+            }
+            public FileNameAndParentFrn Get(TKey dictionaryKey, UInt32 key)
+            {
+                return this[dictionaryKey][key];
+            }
         }
     }
 }

@@ -16,7 +16,8 @@ It can copy files by filename or files and ADS,s using the references provided i
 The copy is made by reading the data from the clusters so that you can copy protected system files or files in use.
 (Imports from "kernel32.dll":	CloseHandle, CreateFile, ReadFile, SetFilePointerEx).
 
-The initial delay is due to the creation of a dictionary with full file paths.
+The initial delay is due to the creation of a dictionary with full file paths. -k  option will keep the session open and the origins will be cached.
+Successive queries will benefit from a higher response speed. You can change the origin and return without time penalty.
 
 Examples:
 
@@ -44,7 +45,7 @@ only 470 Mb had content while the rest were sparse chunks. The final file was on
 
 Using the tl format and SHA1:
 
-mftf -d c -f shadow1 -tl -sha1
+>mftf -d c -f shadow1 -tl -sha1
 
 	2017/05/05,18:56:50.2977651,SI[MACB],C:\Program Files\soda_shadow1.ffm,113504,588,C6646B28833C4FFB7BC4E10256C134D290C7D419
 	2016/09/15,12:03:29.0766109,FN[M...],C:\Program Files\soda_shadow1.ffm,113504,588,C6646B28833C4FFB7BC4E10256C134D290C7D419
@@ -53,7 +54,7 @@ mftf -d c -f shadow1 -tl -sha1
 
 In this example the file has 4 $FN attributes and two ADS and the Attribute List points to another record.
 
-mftf -d c -i 623677
+>mftf -d c -i 623677
 
 	Record: 623677 [Attribute List points to records numbers: 623745]
 	[File]  \\_SMSVC~1.INI
@@ -72,7 +73,7 @@ mftf -d c -i 623677
 The same file in the timeline format with dates and times from all the $FN attributes.
 The dates and times of the ADS are those of the $SI attribute.
 
-mftf -d c -f "_SMSvcHostPerfCounters_D" -t
+>mftf -d c -f "_SMSvcHostPerfCounters_D" -t
 
 	Filetime,[MACB],filename,record,size
 	2014/02/18 07:51:58.3286194,SI[MA.B],\\_SMSvcHostPerfCounters_D.ini,623677,41
@@ -94,7 +95,7 @@ Inspect resident files:
 	FN[MACB]: 2007-03-10 21:06:30.0000000   2015-04-11 11:08:03.8517259   2015-04-11 11:08:03.8517259   2014-11-02 20:47:35.2054110
 	Reference: 36112:128-1 [Size: 233 bytes|| Size on disk: 0 bytes]
 	
-mftf -d d -w 36112
+>mftf -d d -w 36112
 
 	Volume serial number: 1601228289244169585
 	Sector size: 512 bytes

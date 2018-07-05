@@ -22,6 +22,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 Usage:
+-k  This option will keep the session open and the origins will be cached. Successive queries
+    will benefit from a higher response speed. You can change the origin and return without time penalty.
+
 File copy reading from the clusters:
 mftf.exe -cp file_full_path -n full_path_destination
 
