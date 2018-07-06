@@ -79,6 +79,8 @@ namespace MFT_fileoper
                     empieza = DateTime.Now;
                     buscadasList = new List<string>();
                     referencesToCopyList = new List<string>();
+                    listaDataOffset = new List<ulong>();
+                    listaDataRunLength = new List<uint>();
                     argsK = null;
                     if (!string.IsNullOrEmpty(CommandLine["n"]))
                     {
@@ -613,7 +615,6 @@ namespace MFT_fileoper
                 byte[] content2 = new byte[bytesxRecord];
                 long pos = 0;
                 MFT_ENTRY infoMFT = null;
-                int nn = 0;
                 long tam = readBin.BaseStream.Length;
                 while (pos < tam)
                 {
@@ -1131,8 +1132,6 @@ namespace MFT_fileoper
                 dictSourcesAds[origenId] = new Dictionary<UInt32, Dictionary<string, UInt16>>();
                 try
                 {
-                    listaDataOffset = new List<ulong>();
-                    listaDataRunLength = new List<uint>();
                     MFT_ENTRY mftEntry = new MFT_ENTRY(ReadRaw(mftOffset, bytesxRecord));
                     while (mftEntry.attributeSig != DATA_SIG)
                     {
@@ -1297,7 +1296,6 @@ namespace MFT_fileoper
         {
             diccDatosCopia = new SortedDictionary<ulong, dataParaCopia>();
             string referenceBuscada = "";
-            ushort attIDBuscado = 0;
             ulong llevoCopiado = 0;
             GetPath.FileNameAndParentFrn localizado = dictSources[origenId][record];
             byte[] refRecord = ReadRaw(localizado.RecordOffset, bytesxRecord);
