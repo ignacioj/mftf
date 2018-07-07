@@ -35,11 +35,15 @@ SOURCE:
   -d drive_letter      Logical unit.
   -o MFT_file [-b bytesxrecord]    Offline $MFT file. Default bytes per MFT record is 1024 bytes.
 
-ACTIONS: COPY.
-  -cr ""ref1[|ref2..]""                         Copy the referenced file/ads to this folder. Use | as separator.
-  -cl list.txt                                Copy all the files referenced in the file list.txt.
-                                              Each line MUST start with: reference + [TAB].
-  -cn record_number                           Copy the bytes of the MFT record to this folder.
+ACTIONS: EXTRACT DATA/INFORMATION.
+  -cr ""ref1[|ref2..]""        Copy the referenced file/ads to this folder. Use | as separator.
+  -wr ""ref1[|ref2..]""        Only for resident data: Write to console the referenced file or ADS.
+  -cl list.txt                 Copy all the files referenced in the file list.txt.
+                                     Each line MUST start with: reference + [TAB].
+  -cn record_number            Copy the binary content of the MFT record to this folder.
+  -i record_number             Show information of the MFT record.
+  -ip path_to_file             Show information of the MFT record.
+  -w record_number             Write on screen the bytes of the MFT record.
 
 ACTIONS: SEARCH.
   -f ""string1|string2 with spaces/|string3<""    Use | as separator. The < for an exat match. 
@@ -51,11 +55,6 @@ ACTIONS: SEARCH.
   -fd ""\\Dir1\dir2|\\Dir1\dir3<""                Search files and folders under the tree.
   -r N                                          Recursion level  for fd option. Default is 0.
   -fads                                         Find all the ADS,s.
-
-ACTIONS: GET INFORMATION.
-  -i record_number          Show information of the MFT record.
-  -ip path_to_file          Show information of the MFT record.
-  -w record_number          Write on screen the bytes of the MFT record.
 
 Search OPTIONS:
 >Timeline mode: if no search is specified the entire MFT will be in the output. Two formats available:

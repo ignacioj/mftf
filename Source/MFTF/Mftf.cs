@@ -64,7 +64,7 @@ namespace MFT_fileoper
             string[] argsK;
             Regex userComSplit = new Regex("(?:^|\\s)(\"(?:[^\"]+|\"\")*\"|[^\\s]*)", RegexOptions.Compiled);
             CommandLine = new Arguments(args);
-            if (CommandLine["h"] != null || args.Length < 2) { Console.WriteLine(LaAyuda()); }
+            if (CommandLine["h"] != null || args.Length == 0) { Console.WriteLine(LaAyuda()); }
             else
             {
                 if (CommandLine.Parameters.ContainsKey("k")) keep = true;
@@ -376,13 +376,25 @@ namespace MFT_fileoper
                                     }
                                     else Console.WriteLine("\nNot found. Check MFT number.");
                                 }
-                                else if (!string.IsNullOrEmpty(CommandLine["cr"]))
+                                else if ((!string.IsNullOrEmpty(CommandLine["cr"])) || (!string.IsNullOrEmpty(CommandLine["wr"])))
                                 {
-                                    if (CommandLine["o"] != null) Console.WriteLine("\nNothing to copy! It's an offline hive.");
+                                    if ((CommandLine["o"] != null) && (CommandLine["cr"] != null))
+                                    {
+                                        Console.WriteLine("\nNothing to copy! It's an offline hive.");
+
+                                    }
                                     else
                                     {
                                         char[] delimiters = new char[] { '|' };
-                                        string[] words = CommandLine["cr"].Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
+                                        string[] words;
+                                        if (CommandLine["cr"] != null)
+                                        {
+                                            words = CommandLine["cr"].Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
+                                        }
+                                        else
+                                        {
+                                            words = CommandLine["wr"].Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
+                                        }
                                         referencesToCopyList.AddRange(words);
                                         foreach (string referenceBuscada in referencesToCopyList)
                                         {
@@ -391,8 +403,11 @@ namespace MFT_fileoper
                                                 string[] recordRef = referenceBuscada.Split(':');
                                                 UInt32 recordBuscado = Convert.ToUInt32(recordRef[0], 10);
                                                 BuscaMFTRecord(referenceBuscada);
-                                                if (copiado) { Console.WriteLine("Copy finished: {0}", nombreArch); }
-                                                else { Console.WriteLine("Record not found."); }
+                                                if (CommandLine["cr"] != null)
+                                                {
+                                                    if (copiado) { Console.WriteLine("Copy finished: {0}", nombreArch); }
+                                                    else { Console.WriteLine("Record not found."); }
+                                                }
                                             }
                                             else Console.WriteLine("\nReference {0} is incorrect.", referenceBuscada);
                                         }
@@ -615,6 +630,7 @@ namespace MFT_fileoper
                 byte[] content2 = new byte[bytesxRecord];
                 long pos = 0;
                 MFT_ENTRY infoMFT = null;
+                int nn = 0;
                 long tam = readBin.BaseStream.Length;
                 while (pos < tam)
                 {
@@ -1296,6 +1312,7 @@ namespace MFT_fileoper
         {
             diccDatosCopia = new SortedDictionary<ulong, dataParaCopia>();
             string referenceBuscada = "";
+            ushort attIDBuscado = 0;
             ulong llevoCopiado = 0;
             GetPath.FileNameAndParentFrn localizado = dictSources[origenId][record];
             byte[] refRecord = ReadRaw(localizado.RecordOffset, bytesxRecord);
@@ -1506,6 +1523,7 @@ namespace MFT_fileoper
         public static void BuscaMFTRecord(string referenceBuscada, string archFinal = "")
         {
             diccDatosCopia = new SortedDictionary<ulong, dataParaCopia>();
+            string nAds = "";
             ulong llevoCopiado = 0;
             char[] delimiters = new char[] { ':', '-' };
             string[] referencePartes = referenceBuscada.Split(delimiters);
@@ -1524,13 +1542,14 @@ namespace MFT_fileoper
                         if (adsItem.Value == attIDBuscado)
                         {
                             nombreArch = nombreArch + "-" + adsItem.Key;
+                            nAds = adsItem.Key.ToString();
                         }
                     }
                     nombreArch = nombreArch + ".dat";
                 }
                 else { nombreArch = archFinal; }
                 MFT_ENTRY infoRecord = new MFT_ENTRY(refRecord);
-                if (infoRecord.valFileFlags == 1 || infoRecord.valFileFlags == 5 || infoRecord.valFileFlags == 0)
+                if (infoRecord.valFileFlags == 1 || infoRecord.valFileFlags == 5 || infoRecord.valFileFlags == 0 || infoRecord.valFileFlags == 2 || infoRecord.valFileFlags == 3)
                 {
                     infoRecord.MFT_NEXT_ATTRIBUTE();
                     while (infoRecord.attributeSig != END_RECORD_SIG)
@@ -1578,7 +1597,14 @@ namespace MFT_fileoper
                             {
                                 if (diccDatosCopia[infoRecord.attrListStartVCN].isResident) 
                                 {
-                                    File.WriteAllBytes(nombreArch, diccDatosCopia[infoRecord.attrListStartVCN].contentResident);
+                                    if (CommandLine["wr"] != null)
+                                    {
+                                        Console.WriteLine("\n------ADS NAME:\n{0}\n------DATA:\n{1}------END\n", nAds, Encoding.Default.GetString(diccDatosCopia[infoRecord.attrListStartVCN].contentResident));
+                                    }
+                                    else
+                                    {
+                                        File.WriteAllBytes(nombreArch, diccDatosCopia[infoRecord.attrListStartVCN].contentResident);
+                                    }
                                 }
                                 else 
                                 {
@@ -1604,7 +1630,14 @@ namespace MFT_fileoper
                                             infoRecordDatarun.GET_RESIDENT_DATA();
                                             byte[] dataResidente = new byte[infoRecordDatarun.attributeContentLength];
                                             Array.Copy(infoRecordDatarun.rawRecord, infoRecordDatarun.offsetToAttribute + infoRecordDatarun.attributeContentOffset, dataResidente, 0, infoRecordDatarun.attributeContentLength);
-                                            File.WriteAllBytes(nombreArch, dataResidente);
+                                            if (CommandLine["wr"] != null)
+                                            {
+                                                Console.WriteLine("\n------ADS NAME:\n{0}\n------DATA:\n{1}------END\n", nAds, Encoding.Default.GetString(dataResidente));
+                                            }
+                                            else
+                                            {
+                                                File.WriteAllBytes(nombreArch, dataResidente);
+                                            }
                                         }
                                         recordDatarun = null;
                                     }
@@ -1629,7 +1662,14 @@ namespace MFT_fileoper
                                     infoRecord.GET_RESIDENT_DATA();
                                     byte[] dataResidente = new byte[infoRecord.attributeContentLength];
                                     Array.Copy(infoRecord.rawRecord, infoRecord.offsetToAttribute + infoRecord.attributeContentOffset, dataResidente, 0, infoRecord.attributeContentLength);
-                                    File.WriteAllBytes(nombreArch, dataResidente);
+                                    if (CommandLine["wr"] != null)
+                                    {
+                                        Console.WriteLine("\n------ADS NAME:\n{0}\n------DATA:\n{1}------END\n", nAds, Encoding.Default.GetString(dataResidente));
+                                    }
+                                    else
+                                    {
+                                        File.WriteAllBytes(nombreArch, dataResidente);
+                                    }
                                     copiado = true;
                                     break;
                                 }
@@ -1644,12 +1684,6 @@ namespace MFT_fileoper
                 {
                     switch (infoRecord.valFileFlags)
                     {
-                        case 2:
-                            Console.WriteLine("\nNot suported: deleted directory.");
-                            break;
-                        case 3:
-                            Console.WriteLine("\nNot suported: directory.");
-                            break;
                         default:
                             Console.WriteLine("\nNot suported.");
                             break;
@@ -1658,7 +1692,7 @@ namespace MFT_fileoper
             }
             catch
             {
-                Console.WriteLine("\nUnable to make the copy. Please check the reference.");
+                Console.WriteLine("\nError: Please check the reference.");
             }
         }
 
@@ -2960,11 +2994,15 @@ SOURCE:
   -d drive_letter      Logical unit.
   -o MFT_file [-b bytesxrecord]    Offline $MFT file. Default bytes per MFT record is 1024 bytes.
 
-ACTIONS: COPY.
-  -cr ""ref1[|ref2..]""                         Copy the referenced file/ads to this folder. Use | as separator.
-  -cl list.txt                                Copy all the files referenced in the file list.txt.
-                                              Each line MUST start with: reference + [TAB].
-  -cn record_number                           Copy the bytes of the MFT record to this folder.
+ACTIONS: EXTRACT DATA/INFORMATION.
+  -cr ""ref1[|ref2..]""        Copy the referenced file/ads to this folder. Use | as separator.
+  -wr ""ref1[|ref2..]""        Only for resident data: Write to console the referenced file or ADS.
+  -cl list.txt                 Copy all the files referenced in the file list.txt.
+                                     Each line MUST start with: reference + [TAB].
+  -cn record_number            Copy the binary content of the MFT record to this folder.
+  -i record_number             Show information of the MFT record.
+  -ip path_to_file             Show information of the MFT record.
+  -w record_number             Write on screen the bytes of the MFT record.
 
 ACTIONS: SEARCH.
   -f ""string1|string2 with spaces/|string3<""    Use | as separator. The < for an exat match. 
@@ -2976,11 +3014,6 @@ ACTIONS: SEARCH.
   -fd ""\\Dir1\dir2|\\Dir1\dir3<""                Search files and folders under the tree.
   -r N                                          Recursion level  for fd option. Default is 0.
   -fads                                         Find all the ADS,s.
-
-ACTIONS: GET INFORMATION.
-  -i record_number          Show information of the MFT record.
-  -ip path_to_file          Show information of the MFT record.
-  -w record_number          Write on screen the bytes of the MFT record.
 
 Search OPTIONS:
 >Timeline mode: if no search is specified the entire MFT will be in the output. Two formats available:
