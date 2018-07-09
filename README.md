@@ -20,6 +20,51 @@ The initial delay is due to the creation of a dictionary with full file paths. -
 Successive queries will benefit from a higher response speed. You can change the origin and return without time penalty.
 
 Examples:
+>mftf -k
+New commands or quit (q):
+
+>-d e -wr 458972:128-1
+
+REFERENCE:[288699-128-1]-"indicator-keyboard-Kk-2.svg"
+------ADS NAME:
+
+------DATA:
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="22" xmlns="http://www.w3.org/2000/svg" version="1.1" height="22">
+ <defs>
+  <mask id="m">
+   <rect y="0" x="0" style="fill:#fff" height="22" width="22"/>
+   <text y="15.5" x="1" style="font-size:12;font-family:Ubuntu;font-weight:500;fill:black">Kk</text>
+   <text y="18.5" x="16" style="font-size:8;font-family:Ubuntu;font-weight:500;fill:black">2</text>
+  </mask>
+ </defs>
+ <rect style="fill:#3c3c3c" mask="url(#m)" rx="2" height="20" width="20" y="1" x="1"/>
+</svg>
+------END
+
+>-d e -bads "http"
+
+...
+REFERENCE:[34933-128-9]-"IMG_449404.jpg"
+------ADS NAME:
+Zone.Identifier
+------DATA:
+[ZoneTransfer]
+ZoneId=3
+ReferrerUrl=http://ert-skrty.com/data/out/10/IMG_449404.jpg
+HostUrl=http://ertmore-etr.com/data/IMG_449404.jpg
+------END
+
+REFERENCE:[136990-128-8]-"fasmw172.zip"
+------ADS NAME:
+Zone.Identifier
+------DATA:
+[ZoneTransfer]
+ZoneId=3
+ReferrerUrl=https://flatassembler.net/download.php
+HostUrl=https://flatassembler.net/fasmw172.zip
+------END
+...
 
 Sparse chunks are not copied. This is very useful when copying the $Usnjrnl:$J. Here the real size of the $J was 19 Gb but 
 only 470 Mb had content while the rest were sparse chunks. The final file was only 470 Mb in size:

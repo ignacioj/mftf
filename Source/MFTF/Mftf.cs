@@ -33,6 +33,7 @@ namespace MFT_fileoper
         public static string hastaCuando = "9999/99/99";
         public static string encabezadoT = "Date,Time,[MACB],Filename,Record,Size,SHA1";
         public static List<UInt32> refCoincid;
+        public static List<string> refBuscADS;
         public static bool copiado = false;
         public static string nombreArch;
         public static bool origenValido = false;
@@ -43,9 +44,8 @@ namespace MFT_fileoper
         private static GetPath.DictionaryCollection<string, UInt32, GetPath.FileNameAndParentFrn> dictSources;
         private static DictColAds<string, UInt32, Dictionary<string,UInt16>> dictSourcesAds;
         private static DictColHijos<string, UInt32, List<UInt32>> dictSourcesHijos;
+        private static DictDataRunList<string, GETDATARUNLIST> dictDataRunLists;
         public static DateTime empieza = DateTime.Now;
-        public static  List<uint> listaDataRunLength;
-        public static List<ulong> listaDataOffset;
         public static string letraDisco;
         public static IntPtr hDisk;
         public static StreamWriter writer;
@@ -57,6 +57,7 @@ namespace MFT_fileoper
         public static string currSource = "";
         public static List<string> referencesToCopyList;
         public static List<string> buscadasList;
+        public static string buscAds;
 
 
         static void Main(string[] args)
@@ -71,6 +72,7 @@ namespace MFT_fileoper
                 dictSources = new GetPath.DictionaryCollection<string, UInt32, GetPath.FileNameAndParentFrn>();
                 dictSourcesAds = new DictColAds<string, UInt32, Dictionary<string, UInt16>>();
                 dictSourcesHijos = new DictColHijos<string, uint, List<uint>>();
+                dictDataRunLists = new DictDataRunList<string, GETDATARUNLIST>();
                 do
                 {
                     origenValido = false;
@@ -79,8 +81,6 @@ namespace MFT_fileoper
                     empieza = DateTime.Now;
                     buscadasList = new List<string>();
                     referencesToCopyList = new List<string>();
-                    listaDataOffset = new List<ulong>();
-                    listaDataRunLength = new List<uint>();
                     argsK = null;
                     if (!string.IsNullOrEmpty(CommandLine["n"]))
                     {
@@ -314,6 +314,18 @@ namespace MFT_fileoper
                                 {
                                     if (CommandLine["x"] != null) { writer = new StreamWriter(nameOut, true); }
                                     BuscaTodosADSs(mftOffset);
+                                    GetCoinciDetalles();
+                                }
+                                else if (CommandLine["bads"] != null)
+                                {
+                                    buscAds = CommandLine["bads"];
+                                    refBuscADS = new List<string>();
+                                    BuscaTodosADSs(mftOffset);
+                                    foreach (string reference in refBuscADS)
+                                    {
+                                        BuscaMFTRecord(reference.ToString());
+                                    }
+                                    refBuscADS = null;
                                 }
                                 else if (!string.IsNullOrEmpty(CommandLine["fr"]))
                                 {
@@ -558,9 +570,9 @@ namespace MFT_fileoper
                 }
                 GETDATARUNLIST dataRunlist = new GETDATARUNLIST(mftEntry);
                 dataRunlist.GETLISTS(mftEntry);
-                foreach (var doff in listaDataOffset)
+                foreach (var doff in dataRunlist.listaDataOffset)
                 {
-                    uint runLength_ = listaDataRunLength[listaDataOffset.IndexOf(doff)];
+                    uint runLength_ = dataRunlist.listaDataRunLength[dataRunlist.listaDataOffset.IndexOf(doff)];
                     var posIni = doff;
                     uint pos = 0;
                     byte[] cluster = new byte[bytesxCluster];
@@ -663,9 +675,9 @@ namespace MFT_fileoper
             }
             else
             {
-                foreach (var doff in listaDataOffset)
+                foreach (var doff in dictDataRunLists[origenId].listaDataOffset)
                 {
-                    uint runLength_ = listaDataRunLength[listaDataOffset.IndexOf(doff)];
+                    uint runLength_ = dictDataRunLists[origenId].listaDataRunLength[dictDataRunLists[origenId].listaDataOffset.IndexOf(doff)];
                     var posIni = doff;
                     uint pos = 0;
                     byte[] cluster = new byte[bytesxCluster];
@@ -762,9 +774,9 @@ namespace MFT_fileoper
             }
             else
             {
-                foreach (var doff in listaDataOffset)
+                foreach (var doff in dictDataRunLists[origenId].listaDataOffset)
                 {
-                    uint runLength_ = listaDataRunLength[listaDataOffset.IndexOf(doff)];
+                    uint runLength_ = dictDataRunLists[origenId].listaDataRunLength[dictDataRunLists[origenId].listaDataOffset.IndexOf(doff)];
                     var posIni = doff;
                     uint pos = 0;
                     byte[] cluster = new byte[bytesxCluster];
@@ -796,14 +808,16 @@ namespace MFT_fileoper
                                         {
                                             if (!refCoincid.Contains(infoMFT.recordNumber))
                                             {
-                                                refCoincid.Add(infoMFT.recordNumber);
+                                                if (CommandLine["bads"] != null) { refBuscADS.Add(infoMFT.recordNumber.ToString() + ":128-" + infoMFT.attributeID.ToString()); }
+                                                else { refCoincid.Add(infoMFT.recordNumber); }
                                             }
                                         }
                                         else
                                         {
                                             if (!refCoincid.Contains(infoMFT.fileReferenceToBaseFile))
                                             {
-                                                refCoincid.Add(infoMFT.fileReferenceToBaseFile);
+                                                if (CommandLine["bads"] != null) { refBuscADS.Add(infoMFT.fileReferenceToBaseFile.ToString() + ":128-" + infoMFT.attributeID.ToString()); }
+                                                else { refCoincid.Add(infoMFT.fileReferenceToBaseFile); }
                                             }
                                         }
                                     }
@@ -819,8 +833,7 @@ namespace MFT_fileoper
                     }
                 }
             }
-            if ((CommandLine["tl"] == null) && (CommandLine["l2t"] == null)) Console.WriteLine("Total: {0}\n", refCoincid.Count);
-            GetCoinciDetalles();
+            if ((CommandLine["tl"] == null) && (CommandLine["l2t"] == null) && (CommandLine["bads"] == null)) Console.WriteLine("Total: {0}\n", refCoincid.Count);
         }
 
         public static ulong GetDiskInfo()
@@ -898,9 +911,9 @@ namespace MFT_fileoper
             }
             else
             {
-                foreach (var doff in listaDataOffset)
+                foreach (var doff in dictDataRunLists[origenId].listaDataOffset)
                 {
-                    uint runLength_ = listaDataRunLength[listaDataOffset.IndexOf(doff)];
+                    uint runLength_ = dictDataRunLists[origenId].listaDataRunLength[dictDataRunLists[origenId].listaDataOffset.IndexOf(doff)];
                     var posIni = doff;
                     uint pos = 0;
                     byte[] cluster = new byte[bytesxCluster];
@@ -958,9 +971,9 @@ namespace MFT_fileoper
             {
                 if (buscadasList.Count != 0)
                 {
-                    foreach (var doff in listaDataOffset)
+                    foreach (var doff in dictDataRunLists[origenId].listaDataOffset)
                     {
-                        BuscaCoincidencias(listaDataRunLength[listaDataOffset.IndexOf(doff)], doff, buscadasList);
+                        BuscaCoincidencias(dictDataRunLists[origenId].listaDataRunLength[dictDataRunLists[origenId].listaDataOffset.IndexOf(doff)], doff, buscadasList);
                     }
                 }
             }
@@ -1157,9 +1170,10 @@ namespace MFT_fileoper
                     }
                     GETDATARUNLIST dataRunlist = new GETDATARUNLIST(mftEntry);
                     dataRunlist.GETLISTS(mftEntry);
-                    foreach (var doff in listaDataOffset)
+                    dictDataRunLists[origenId] = dataRunlist;
+                    foreach (var doff in dataRunlist.listaDataOffset)
                     {
-                        uint runLength_ = listaDataRunLength[listaDataOffset.IndexOf(doff)];
+                        uint runLength_ = dataRunlist.listaDataRunLength[dataRunlist.listaDataOffset.IndexOf(doff)];
                         var posIni = doff;
                         uint pos = 0;
                         byte[] cluster = new byte[bytesxCluster];
@@ -1310,6 +1324,7 @@ namespace MFT_fileoper
 
         public static void BuscaMFTRecordDesdePath(UInt32 record, ulong mftOffset, string nombreArch)
         {
+            copiado = false;
             diccDatosCopia = new SortedDictionary<ulong, dataParaCopia>();
             string referenceBuscada = "";
             ushort attIDBuscado = 0;
@@ -1522,8 +1537,10 @@ namespace MFT_fileoper
 
         public static void BuscaMFTRecord(string referenceBuscada, string archFinal = "")
         {
+            copiado = false;
             diccDatosCopia = new SortedDictionary<ulong, dataParaCopia>();
             string nAds = "";
+            string nombRef = "";
             ulong llevoCopiado = 0;
             char[] delimiters = new char[] { ':', '-' };
             string[] referencePartes = referenceBuscada.Split(delimiters);
@@ -1533,15 +1550,17 @@ namespace MFT_fileoper
             {
                 GetPath.FileNameAndParentFrn localizado = dictSources[origenId][mftRefBuscada];
                 byte[] refRecord = ReadRaw(localizado.RecordOffset, bytesxRecord);
+                if ((CommandLine["wr"] == null) && (CommandLine["bads"] == null)) { archFinal = ""; }
                 if (string.IsNullOrEmpty(archFinal))
                 {
-                    nombreArch = "[" + referenceBuscada.Replace(":", "-") + "]";
-                    nombreArch = nombreArch + "-" + localizado.Name;
+                    nombRef = "[" + referenceBuscada.Replace(":", "-") + "]";
+                    nombRef = nombRef + "-" + "\"" + localizado.Name + "\"";
+                    nombreArch = nombRef + "-" + localizado.Name;
                     foreach (var adsItem in dictSourcesAds[origenId][mftRefBuscada])
                     {
                         if (adsItem.Value == attIDBuscado)
                         {
-                            nombreArch = nombreArch + "-" + adsItem.Key;
+                            nombreArch = nombRef + "-" + adsItem.Key;
                             nAds = adsItem.Key.ToString();
                         }
                     }
@@ -1551,133 +1570,176 @@ namespace MFT_fileoper
                 MFT_ENTRY infoRecord = new MFT_ENTRY(refRecord);
                 if (infoRecord.valFileFlags == 1 || infoRecord.valFileFlags == 5 || infoRecord.valFileFlags == 0 || infoRecord.valFileFlags == 2 || infoRecord.valFileFlags == 3)
                 {
-                    infoRecord.MFT_NEXT_ATTRIBUTE();
-                    while (infoRecord.attributeSig != END_RECORD_SIG)
+                    if ((infoRecord.valFileFlags == 0 || infoRecord.valFileFlags == 2) && (CommandLine["bads"] != null)) { }
+                    else
                     {
-                        if (infoRecord.attributeSig == AL_SIG) 
+                        infoRecord.MFT_NEXT_ATTRIBUTE();
+                        while (infoRecord.attributeSig != END_RECORD_SIG)
                         {
-                            infoRecord.MFT_NEXT_ATTRIBUTE_VALIDO();
-                            if (infoRecord.attributeNonResident == 0)
+                            if (infoRecord.attributeSig == AL_SIG)
                             {
-                                Int16 prevAttributeLength = infoRecord.attributeLength;
-                                Int32 prevOffsetToAttribute = infoRecord.offsetToAttribute;
-                                infoRecord.attributeLength = infoRecord.attributeContentOffset;
-                                ProcessAttrListParaCopia(infoRecord, Convert.ToInt32(infoRecord.attributeContentLength), attIDBuscado);
-                                infoRecord.attributeLength = prevAttributeLength;
-                                infoRecord.attributeSig = 0x20;
-                                infoRecord.offsetToAttribute = prevOffsetToAttribute;
-                            }
-                            else 
-                            {
-                                MFT_ENTRY attListNoResident = infoRecord;
-                                GETDATARUNLIST dataRunlist = new GETDATARUNLIST(attListNoResident);
-                                byte[] prevRawRecord = infoRecord.rawRecord;
-                                Int16 prevAttributeLength = infoRecord.attributeLength;
-                                Int32 prevOffsetToAttribute = infoRecord.offsetToAttribute;
-                                Int32 contentLength = BitConverter.ToInt32(infoRecord.rawRecord, infoRecord.offsetToAttribute + 48);
-                                while (dataRunlist.runlist != (byte)(0x00))
+                                infoRecord.MFT_NEXT_ATTRIBUTE_VALIDO();
+                                if (infoRecord.attributeNonResident == 0)
                                 {
-                                    dataRunlist.GETCLUSTERS(attListNoResident);
-                                    if (!dataRunlist.isSparse)
-                                    {
-                                        uint runLength_ = dataRunlist.runLength;
-                                        infoRecord.rawRecord = ReadRaw(dataRunlist.offsetBytesMFT, runLength_ * bytesxCluster);
-                                        infoRecord.attributeLength = 0;
-                                        infoRecord.offsetToAttribute = 0;
-                                        ProcessAttrListParaCopia(infoRecord, contentLength, attIDBuscado);
-                                    }
-                                    dataRunlist.NEXTDATARUNLIST(prevRawRecord[dataRunlist.runlistOffset]);
-                                }
-                                infoRecord.rawRecord = prevRawRecord;
-                                infoRecord.attributeLength = prevAttributeLength;
-                                infoRecord.attributeSig = 0x20;
-                                infoRecord.offsetToAttribute = prevOffsetToAttribute;
-                            }
-                            if (copiado)
-                            {
-                                if (diccDatosCopia[infoRecord.attrListStartVCN].isResident) 
-                                {
-                                    if (CommandLine["wr"] != null)
-                                    {
-                                        Console.WriteLine("\n------ADS NAME:\n{0}\n------DATA:\n{1}------END\n", nAds, Encoding.Default.GetString(diccDatosCopia[infoRecord.attrListStartVCN].contentResident));
-                                    }
-                                    else
-                                    {
-                                        File.WriteAllBytes(nombreArch, diccDatosCopia[infoRecord.attrListStartVCN].contentResident);
-                                    }
-                                }
-                                else 
-                                {
-                                    ulong sizeArchivo = 0;
-                                    Int32 elementos = diccDatosCopia.Count;
-                                    int n = 0;
-                                    foreach (KeyValuePair<ulong, dataParaCopia> datarun in diccDatosCopia)
-                                    {
-                                        n += 1;
-                                        if (sizeArchivo < datarun.Value.sizeCopiar) { sizeArchivo = datarun.Value.sizeCopiar; }
-                                        GetPath.FileNameAndParentFrn localizaRecordDatarun = dictSources[origenId][datarun.Value.mftFRN];
-                                        byte[] recordDatarun = ReadRaw(localizaRecordDatarun.RecordOffset, bytesxRecord);
-                                        MFT_ENTRY infoRecordDatarun = new MFT_ENTRY(recordDatarun);
-                                        infoRecordDatarun.offsetToAttribute = datarun.Value.offsetHastaData;
-                                        infoRecordDatarun.attributeSig = DATA_SIG;
-                                        infoRecordDatarun.attributeLength = BitConverter.ToInt16(infoRecordDatarun.rawRecord, infoRecordDatarun.offsetToAttribute + 4);
-                                        if (infoRecordDatarun.rawRecord[infoRecordDatarun.offsetToAttribute + 8] == 1)
-                                        {
-                                            CopiaNoResidentDATA(infoRecordDatarun, n, elementos, sizeArchivo, nombreArch, ref llevoCopiado);
-                                        }
-                                        else
-                                        {
-                                            infoRecordDatarun.GET_RESIDENT_DATA();
-                                            byte[] dataResidente = new byte[infoRecordDatarun.attributeContentLength];
-                                            Array.Copy(infoRecordDatarun.rawRecord, infoRecordDatarun.offsetToAttribute + infoRecordDatarun.attributeContentOffset, dataResidente, 0, infoRecordDatarun.attributeContentLength);
-                                            if (CommandLine["wr"] != null)
-                                            {
-                                                Console.WriteLine("\n------ADS NAME:\n{0}\n------DATA:\n{1}------END\n", nAds, Encoding.Default.GetString(dataResidente));
-                                            }
-                                            else
-                                            {
-                                                File.WriteAllBytes(nombreArch, dataResidente);
-                                            }
-                                        }
-                                        recordDatarun = null;
-                                    }
-                                }
-                            }
-                            break; 
-                        }
-                        else if (infoRecord.attributeSig == DATA_SIG) 
-                        {
-                            infoRecord.MFT_NEXT_ATTRIBUTE_VALIDO();
-                            if (infoRecord.attributeID == attIDBuscado)
-                            {
-                                if (infoRecord.attributeNonResident == 1)
-                                {
-                                    ulong sizeArchivo = BitConverter.ToUInt64(infoRecord.rawRecord, infoRecord.offsetToAttribute + 48);
-                                    CopiaNoResidentDATA(infoRecord, 0, 0, sizeArchivo, nombreArch, ref llevoCopiado);
-                                    copiado = true;
-                                    break;
+                                    Int16 prevAttributeLength = infoRecord.attributeLength;
+                                    Int32 prevOffsetToAttribute = infoRecord.offsetToAttribute;
+                                    infoRecord.attributeLength = infoRecord.attributeContentOffset;
+                                    ProcessAttrListParaCopia(infoRecord, Convert.ToInt32(infoRecord.attributeContentLength), attIDBuscado);
+                                    infoRecord.attributeLength = prevAttributeLength;
+                                    infoRecord.attributeSig = 0x20;
+                                    infoRecord.offsetToAttribute = prevOffsetToAttribute;
                                 }
                                 else
                                 {
-                                    infoRecord.GET_RESIDENT_DATA();
-                                    byte[] dataResidente = new byte[infoRecord.attributeContentLength];
-                                    Array.Copy(infoRecord.rawRecord, infoRecord.offsetToAttribute + infoRecord.attributeContentOffset, dataResidente, 0, infoRecord.attributeContentLength);
-                                    if (CommandLine["wr"] != null)
+                                    MFT_ENTRY attListNoResident = infoRecord;
+                                    GETDATARUNLIST dataRunlist = new GETDATARUNLIST(attListNoResident);
+                                    byte[] prevRawRecord = infoRecord.rawRecord;
+                                    Int16 prevAttributeLength = infoRecord.attributeLength;
+                                    Int32 prevOffsetToAttribute = infoRecord.offsetToAttribute;
+                                    Int32 contentLength = BitConverter.ToInt32(infoRecord.rawRecord, infoRecord.offsetToAttribute + 48);
+                                    while (dataRunlist.runlist != (byte)(0x00))
                                     {
-                                        Console.WriteLine("\n------ADS NAME:\n{0}\n------DATA:\n{1}------END\n", nAds, Encoding.Default.GetString(dataResidente));
+                                        dataRunlist.GETCLUSTERS(attListNoResident);
+                                        if (!dataRunlist.isSparse)
+                                        {
+                                            uint runLength_ = dataRunlist.runLength;
+                                            infoRecord.rawRecord = ReadRaw(dataRunlist.offsetBytesMFT, runLength_ * bytesxCluster);
+                                            infoRecord.attributeLength = 0;
+                                            infoRecord.offsetToAttribute = 0;
+                                            ProcessAttrListParaCopia(infoRecord, contentLength, attIDBuscado);
+                                        }
+                                        dataRunlist.NEXTDATARUNLIST(prevRawRecord[dataRunlist.runlistOffset]);
+                                    }
+                                    infoRecord.rawRecord = prevRawRecord;
+                                    infoRecord.attributeLength = prevAttributeLength;
+                                    infoRecord.attributeSig = 0x20;
+                                    infoRecord.offsetToAttribute = prevOffsetToAttribute;
+                                }
+                                if (copiado)
+                                {
+                                    if (diccDatosCopia[infoRecord.attrListStartVCN].isResident)
+                                    {
+                                        if (CommandLine["wr"] != null)
+                                        {
+                                            Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}------END\n", nombRef, nAds, Encoding.Default.GetString(diccDatosCopia[infoRecord.attrListStartVCN].contentResident));
+                                        }
+                                        else if (CommandLine["bads"] != null)
+                                        {
+                                            string cadenaRaw = nAds + " " + Encoding.Default.GetString(diccDatosCopia[infoRecord.attrListStartVCN].contentResident).Replace("\0", "").ToLower();
+                                            if (((cadenaRaw.Length - (cadenaRaw.ToLower().Replace(buscAds.ToLower(), String.Empty)).Length) / buscAds.Length) > 0)
+                                            {
+                                                Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}------END\n", nombRef, nAds, Encoding.Default.GetString(diccDatosCopia[infoRecord.attrListStartVCN].contentResident));
+                                            }
+                                        }
+                                        else
+                                        {
+                                            File.WriteAllBytes(nombreArch, diccDatosCopia[infoRecord.attrListStartVCN].contentResident);
+                                        }
                                     }
                                     else
                                     {
-                                        File.WriteAllBytes(nombreArch, dataResidente);
+                                        ulong sizeArchivo = 0;
+                                        Int32 elementos = diccDatosCopia.Count;
+                                        int n = 0;
+                                        foreach (KeyValuePair<ulong, dataParaCopia> datarun in diccDatosCopia)
+                                        {
+                                            n += 1;
+                                            if (sizeArchivo < datarun.Value.sizeCopiar) { sizeArchivo = datarun.Value.sizeCopiar; }
+                                            GetPath.FileNameAndParentFrn localizaRecordDatarun = dictSources[origenId][datarun.Value.mftFRN];
+                                            byte[] recordDatarun = ReadRaw(localizaRecordDatarun.RecordOffset, bytesxRecord);
+                                            MFT_ENTRY infoRecordDatarun = new MFT_ENTRY(recordDatarun);
+                                            infoRecordDatarun.offsetToAttribute = datarun.Value.offsetHastaData;
+                                            infoRecordDatarun.attributeSig = DATA_SIG;
+                                            infoRecordDatarun.attributeLength = BitConverter.ToInt16(infoRecordDatarun.rawRecord, infoRecordDatarun.offsetToAttribute + 4);
+                                            if (infoRecordDatarun.rawRecord[infoRecordDatarun.offsetToAttribute + 8] == 1)
+                                            {
+                                                if ((CommandLine["wr"] == null) && (CommandLine["bads"] == null))
+                                                {
+                                                    CopiaNoResidentDATA(infoRecordDatarun, n, elementos, sizeArchivo, nombreArch, ref llevoCopiado);
+                                                }
+                                                else { break; }
+                                            }
+                                            else
+                                            {
+                                                infoRecordDatarun.GET_RESIDENT_DATA();
+                                                byte[] dataResidente = new byte[infoRecordDatarun.attributeContentLength];
+                                                Array.Copy(infoRecordDatarun.rawRecord, infoRecordDatarun.offsetToAttribute + infoRecordDatarun.attributeContentOffset, dataResidente, 0, infoRecordDatarun.attributeContentLength);
+                                                if (CommandLine["wr"] != null)
+                                                {
+                                                    Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
+                                                }
+                                                else if (CommandLine["bads"] != null)
+                                                {
+                                                    string cadenaRaw = nAds + " " + Encoding.Default.GetString(dataResidente).Replace("\0", "").ToLower();
+                                                    if (((cadenaRaw.Length - (cadenaRaw.ToLower().Replace(buscAds.ToLower(), String.Empty)).Length) / buscAds.Length) > 0)
+                                                    {
+                                                        Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    File.WriteAllBytes(nombreArch, dataResidente);
+                                                }
+                                            }
+                                            recordDatarun = null;
+                                        }
                                     }
-                                    copiado = true;
-                                    break;
+                                }
+                                else if (CommandLine["wr"] != null) { Console.WriteLine("\nBad reference (deleted file/folder?)."); }
+                                break;
+                            }
+                            else if (infoRecord.attributeSig == DATA_SIG)
+                            {
+                                infoRecord.MFT_NEXT_ATTRIBUTE_VALIDO();
+                                if (infoRecord.attributeID == attIDBuscado)
+                                {
+                                    if (infoRecord.attributeNonResident == 1)
+                                    {
+                                        if ((CommandLine["wr"] == null) && (CommandLine["bads"] == null))
+                                        {
+                                            ulong sizeArchivo = BitConverter.ToUInt64(infoRecord.rawRecord, infoRecord.offsetToAttribute + 48);
+                                            CopiaNoResidentDATA(infoRecord, 0, 0, sizeArchivo, nombreArch, ref llevoCopiado);
+                                            copiado = true;
+                                            break;
+                                        }
+                                        else
+                                        {
+                                            break;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        infoRecord.GET_RESIDENT_DATA();
+                                        byte[] dataResidente = new byte[infoRecord.attributeContentLength];
+                                        Array.Copy(infoRecord.rawRecord, infoRecord.offsetToAttribute + infoRecord.attributeContentOffset, dataResidente, 0, infoRecord.attributeContentLength);
+                                        if (CommandLine["wr"] != null)
+                                        {
+                                            Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
+                                        }
+                                        else if (CommandLine["bads"] != null)
+                                        {
+                                            string cadenaRaw = nAds + " " + Encoding.Default.GetString(dataResidente).Replace("\0", "").ToLower();
+                                            if (((cadenaRaw.Length - (cadenaRaw.ToLower().Replace(buscAds.ToLower(), String.Empty)).Length) / buscAds.Length) > 0)
+                                            {
+                                                Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
+                                            }
+                                        }
+                                        else
+                                        {
+                                            File.WriteAllBytes(nombreArch, dataResidente);
+                                        }
+                                        copiado = true;
+                                        break;
+                                    }
                                 }
                             }
+                            infoRecord.MFT_NEXT_ATTRIBUTE();
                         }
-                        infoRecord.MFT_NEXT_ATTRIBUTE();
                     }
-                    if (!copiado) { Console.WriteLine("\nReference {0} not found", referenceBuscada); }
+                    if ((CommandLine["wr"] == null) && (CommandLine["bads"] == null))
+                    {
+                        if (!copiado) { Console.WriteLine("\nReference {0} not found", referenceBuscada); }
+                    }
                     refRecord = null;
                 }
                 else
@@ -1685,14 +1747,14 @@ namespace MFT_fileoper
                     switch (infoRecord.valFileFlags)
                     {
                         default:
-                            Console.WriteLine("\nNot suported.");
+                            if (CommandLine["bads"] == null) { Console.WriteLine("\nFileFlags value not suported."); }
                             break;
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                Console.WriteLine("\nError: Please check the reference.");
+                Console.WriteLine("\nPlease check the reference. Error: {0}", ex.Message.ToString());
             }
         }
 
@@ -1891,7 +1953,7 @@ namespace MFT_fileoper
 
         public static void BuscaCoincidencias(uint runLength, ulong offsetBytesMFT, List<string> buscadasList)
         {
-            uint runLength_ = listaDataRunLength[listaDataOffset.IndexOf(offsetBytesMFT)];
+            uint runLength_ = runLength;
             var posIni = offsetBytesMFT;
             uint pos = 0;
             byte[] cluster = new byte[bytesxCluster];
@@ -2396,6 +2458,8 @@ namespace MFT_fileoper
             byte[] arrayPositivos = new byte[] { 0x00, 0x00, 0x00, 0x00 };
             byte[] arrayNegativos = new byte[] { 0xFF, 0xFF, 0xFF, 0xFF };
             public bool isSparse = false;
+            public List<uint> listaDataRunLength = new List<uint>();
+            public List<ulong> listaDataOffset = new List<ulong>();
 
             public GETDATARUNLIST(MFT_ENTRY recordActual)
             {
@@ -2956,8 +3020,10 @@ namespace MFT_fileoper
             }
         }
 
+        public class DictDataRunList<TKey, GETDATARUNLIST> : Dictionary<TKey, GETDATARUNLIST> { }
+
         public static string LaAyuda() {
-            return (@"mftf.exe v.2.7
+            return (@"mftf.exe v.2.7.2
 The tool can parse the $MFT from a live system, from a mounted (read-only
 included) logical drive or from a copy of the $MFT.
 It can copy files or ADS,s using the references provided in the results.
@@ -3014,6 +3080,7 @@ ACTIONS: SEARCH.
   -fd ""\\Dir1\dir2|\\Dir1\dir3<""                Search files and folders under the tree.
   -r N                                          Recursion level  for fd option. Default is 0.
   -fads                                         Find all the ADS,s.
+  -bads ""string""                                Display resident ADSs containing ""string""
 
 Search OPTIONS:
 >Timeline mode: if no search is specified the entire MFT will be in the output. Two formats available:

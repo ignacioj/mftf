@@ -1,4 +1,4 @@
-﻿mftf.exe v.2.7
+﻿mftf.exe v.2.7.2
 The tool can parse the $MFT from a live system, from a mounted (read-only
 included) logical drive or from a copy of the $MFT.
 It can copy files or ADS,s using the references provided in the results.
@@ -55,6 +55,7 @@ ACTIONS: SEARCH.
   -fd ""\\Dir1\dir2|\\Dir1\dir3<""                Search files and folders under the tree.
   -r N                                          Recursion level  for fd option. Default is 0.
   -fads                                         Find all the ADS,s.
+  -bads "string"                                Display resident ADSs containing "string"
 
 Search OPTIONS:
 >Timeline mode: if no search is specified the entire MFT will be in the output. Two formats available:
