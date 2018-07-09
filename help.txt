@@ -1,4 +1,4 @@
-﻿mftf.exe v.2.7.2
+﻿mftf.exe v.2.7.2.1
 The tool can parse the $MFT from a live system, from a mounted (read-only
 included) logical drive or from a copy of the $MFT.
 It can copy files or ADS,s using the references provided in the results.
