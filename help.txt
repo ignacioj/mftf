@@ -49,18 +49,18 @@ ACTIONS: SEARCH.
   -f ""string1|string2 with spaces/|string3<""    Use | as separator. The < for an exat match. 
   -f ""folder\string""                            The / for end of string match.
   -f ""folder\*""                                 Use * to search any string.
-  -ff file.txt                                  The strings to search for are in file.txt.
-                                                One string per line.
-  -fr string                                    Raw search in the bytes of each MFT record.
+  -ff file.txt                                       The strings to search for are in file.txt.
+                                                     One string per line.
+  -fr string                                      Raw search in the bytes of each MFT record.
   -fd ""\\Dir1\dir2|\\Dir1\dir3<""                Search files and folders under the tree.
-  -r N                                          Recursion level  for fd option. Default is 0.
-  -fads                                         Find all the ADS,s.
-  -bads "string"                                Display resident ADSs containing "string"
+  -r N                                            Recursion level  for fd option. Default is 0.
+  -fads                                           Find all the ADS,s.
+  -bads "string"                                  Display resident ADSs containing "string"
 
 Search OPTIONS:
 >Timeline mode: if no search is specified the entire MFT will be in the output. Two formats available:
     -tl      Format: Date  Time  [MACB]  filename  record  size
-    -l2t    Format: date,time,timezone,MACB,source,sourcetype,type,user,host,short,desc,version,filename,inode,notes,format,extra
+    -l2t     Format: date,time,timezone,MACB,source,sourcetype,type,user,host,short,desc,version,filename,inode,notes,format,extra
   -tf yyyy/MM/dd       Filter from this date.
   -tt yyyy/MM/dd       to this date.
   -sha1                Add the SHA1 to the output (live mode).
