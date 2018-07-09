@@ -21,6 +21,7 @@ Successive queries will benefit from a higher response speed. You can change the
 
 Examples:
 >mftf -k
+
 New commands or quit (q):
 
 >-d e -wr 458972:128-1
