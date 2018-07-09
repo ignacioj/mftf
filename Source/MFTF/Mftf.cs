@@ -751,14 +751,16 @@ namespace MFT_fileoper
                                 {
                                     if (!refCoincid.Contains(infoMFT.recordNumber))
                                     {
-                                        refCoincid.Add(infoMFT.recordNumber);
+                                        if (CommandLine["bads"] != null) { refBuscADS.Add(infoMFT.recordNumber.ToString() + ":128-" + infoMFT.attributeID.ToString()); }
+                                        else { refCoincid.Add(infoMFT.recordNumber); }
                                     }
                                 }
                                 else
                                 {
                                     if (!refCoincid.Contains(infoMFT.fileReferenceToBaseFile))
                                     {
-                                        refCoincid.Add(infoMFT.fileReferenceToBaseFile);
+                                        if (CommandLine["bads"] != null) { refBuscADS.Add(infoMFT.fileReferenceToBaseFile.ToString() + ":128-" + infoMFT.attributeID.ToString()); }
+                                        else { refCoincid.Add(infoMFT.fileReferenceToBaseFile); }
                                     }
                                 }
                             }
@@ -1059,8 +1061,7 @@ namespace MFT_fileoper
         {
             dictSources[origenId] = new Dictionary<uint, GetPath.FileNameAndParentFrn>();
             dictSourcesHijos[origenId] = new Dictionary<uint, List<uint>>();
-
-
+            dictSourcesAds[origenId] = new Dictionary<UInt32, Dictionary<string, UInt16>>();
             if (CommandLine["o"] != null)
             {
                 try
@@ -1072,6 +1073,7 @@ namespace MFT_fileoper
                     {
                         content2 = readBin.ReadBytes((int)bytesxRecord);
                         string nombre = " ";
+                        Dictionary<string, UInt16> nombADS = new Dictionary<string, UInt16>();
                         UInt32 parentDirectory = 0;
                         UInt32 mftSig = BitConverter.ToUInt32(content2, 0);
                         if (mftSig != FILE_SIG)
@@ -1094,6 +1096,17 @@ namespace MFT_fileoper
                                 }
                                 parentDirectory = BitConverter.ToUInt32(infoMFT.rawRecord, infoMFT.offsetToAttribute + infoMFT.attributeContentOffset);
                             }
+                            else if (infoMFT.attributeSig == DATA_SIG)
+                            {
+                                infoMFT.MFT_NEXT_ATTRIBUTE_VALIDO();
+                                if (infoMFT.attributeNameLength != 0)
+                                {
+                                    byte adsNameLen = infoMFT.rawRecord[infoMFT.offsetToAttribute + 9];
+                                    UInt16 adsNameOffset = infoMFT.rawRecord[infoMFT.offsetToAttribute + 10];
+                                    UInt16 attID = infoMFT.rawRecord[infoMFT.offsetToAttribute + 14];
+                                    nombADS.Add(Encoding.Unicode.GetString(infoMFT.rawRecord, infoMFT.offsetToAttribute + adsNameOffset, adsNameLen * 2), attID);
+                                }
+                            }
                             infoMFT.MFT_NEXT_ATTRIBUTE();
                         }
                         if (infoMFT.fileReferenceToBaseFile == 0)
@@ -1107,12 +1120,28 @@ namespace MFT_fileoper
                                     GetPath.FileNameAndParentFrn actualizar = new GetPath.FileNameAndParentFrn(nNombre, parentDirectory, Convert.ToUInt64(pos));
                                     dictSources[origenId].Remove(infoMFT.recordNumber);
                                     dictSources[origenId].Add(infoMFT.recordNumber, actualizar);
+                                    if (nombADS != null)
+                                    {
+                                        if (dictSourcesAds[origenId].ContainsKey(infoMFT.recordNumber))
+                                        {
+                                            foreach (var diccItem in dictSourcesAds[origenId][infoMFT.recordNumber].Keys)
+                                            {
+                                                if (!nombADS.ContainsKey(diccItem))
+                                                {
+                                                    nombADS.Add(diccItem, dictSourcesAds[origenId][infoMFT.recordNumber][diccItem]);
+                                                }
+                                            }
+                                        }
+                                        dictSourcesAds[origenId].Remove(infoMFT.recordNumber);
+                                        dictSourcesAds[origenId].Add(infoMFT.recordNumber, nombADS);
+                                    }
                                 }
                             }
                             else
                             {
                                 GetPath.FileNameAndParentFrn f = new GetPath.FileNameAndParentFrn(nombre, parentDirectory, Convert.ToUInt64(pos));
                                 dictSources[origenId].Add(infoMFT.recordNumber, f);
+                                dictSourcesAds[origenId].Add(infoMFT.recordNumber, nombADS);
                             }
                         }
                         else
@@ -1135,11 +1164,27 @@ namespace MFT_fileoper
                                 GetPath.FileNameAndParentFrn actualizar = new GetPath.FileNameAndParentFrn(nNombre, nparentDirectory, nOffset);
                                 dictSources[origenId].Remove(infoMFT.fileReferenceToBaseFile);
                                 dictSources[origenId].Add(infoMFT.fileReferenceToBaseFile, actualizar);
+                                if (nombADS != null)
+                                {
+                                    if (dictSourcesAds[origenId].ContainsKey(infoMFT.fileReferenceToBaseFile))
+                                    {
+                                        foreach (var diccItem in dictSourcesAds[origenId][infoMFT.fileReferenceToBaseFile].Keys)
+                                        {
+                                            if (!nombADS.ContainsKey(diccItem))
+                                            {
+                                                nombADS.Add(diccItem, dictSourcesAds[origenId][infoMFT.fileReferenceToBaseFile][diccItem]);
+                                            }
+                                        }
+                                    }
+                                    dictSourcesAds[origenId].Remove(infoMFT.fileReferenceToBaseFile);
+                                    dictSourcesAds[origenId].Add(infoMFT.fileReferenceToBaseFile, nombADS);
+                                }
                             }
                             else
                             {
                                 GetPath.FileNameAndParentFrn actualizar = new GetPath.FileNameAndParentFrn(nombre, parentDirectory, 0);
                                 dictSources[origenId].Add(infoMFT.fileReferenceToBaseFile, actualizar);
+                                dictSourcesAds[origenId].Add(infoMFT.fileReferenceToBaseFile, nombADS);
                             }
                         }
                         pos += (int)bytesxRecord;
@@ -1158,7 +1203,6 @@ namespace MFT_fileoper
             }
             else
             {
-                dictSourcesAds[origenId] = new Dictionary<UInt32, Dictionary<string, UInt16>>();
                 try
                 {
                     MFT_ENTRY mftEntry = new MFT_ENTRY(ReadRaw(mftOffset, bytesxRecord));
@@ -1621,14 +1665,14 @@ namespace MFT_fileoper
                                     {
                                         if (CommandLine["wr"] != null)
                                         {
-                                            Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}------END\n", nombRef, nAds, Encoding.Default.GetString(diccDatosCopia[infoRecord.attrListStartVCN].contentResident));
+                                            Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}\n------END\n", nombRef, nAds, Encoding.Default.GetString(diccDatosCopia[infoRecord.attrListStartVCN].contentResident));
                                         }
                                         else if (CommandLine["bads"] != null)
                                         {
                                             string cadenaRaw = nAds + " " + Encoding.Default.GetString(diccDatosCopia[infoRecord.attrListStartVCN].contentResident).Replace("\0", "").ToLower();
                                             if (((cadenaRaw.Length - (cadenaRaw.ToLower().Replace(buscAds.ToLower(), String.Empty)).Length) / buscAds.Length) > 0)
                                             {
-                                                Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}------END\n", nombRef, nAds, Encoding.Default.GetString(diccDatosCopia[infoRecord.attrListStartVCN].contentResident));
+                                                Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}\n------END\n", nombRef, nAds, Encoding.Default.GetString(diccDatosCopia[infoRecord.attrListStartVCN].contentResident));
                                             }
                                         }
                                         else
@@ -1666,14 +1710,14 @@ namespace MFT_fileoper
                                                 Array.Copy(infoRecordDatarun.rawRecord, infoRecordDatarun.offsetToAttribute + infoRecordDatarun.attributeContentOffset, dataResidente, 0, infoRecordDatarun.attributeContentLength);
                                                 if (CommandLine["wr"] != null)
                                                 {
-                                                    Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
+                                                    Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}\n------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
                                                 }
                                                 else if (CommandLine["bads"] != null)
                                                 {
                                                     string cadenaRaw = nAds + " " + Encoding.Default.GetString(dataResidente).Replace("\0", "").ToLower();
                                                     if (((cadenaRaw.Length - (cadenaRaw.ToLower().Replace(buscAds.ToLower(), String.Empty)).Length) / buscAds.Length) > 0)
                                                     {
-                                                        Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
+                                                        Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}\n------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
                                                     }
                                                 }
                                                 else
@@ -1714,14 +1758,14 @@ namespace MFT_fileoper
                                         Array.Copy(infoRecord.rawRecord, infoRecord.offsetToAttribute + infoRecord.attributeContentOffset, dataResidente, 0, infoRecord.attributeContentLength);
                                         if (CommandLine["wr"] != null)
                                         {
-                                            Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
+                                            Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}\n------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
                                         }
                                         else if (CommandLine["bads"] != null)
                                         {
                                             string cadenaRaw = nAds + " " + Encoding.Default.GetString(dataResidente).Replace("\0", "").ToLower();
                                             if (((cadenaRaw.Length - (cadenaRaw.ToLower().Replace(buscAds.ToLower(), String.Empty)).Length) / buscAds.Length) > 0)
                                             {
-                                                Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
+                                                Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}\n------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
                                             }
                                         }
                                         else
@@ -3023,7 +3067,7 @@ namespace MFT_fileoper
         public class DictDataRunList<TKey, GETDATARUNLIST> : Dictionary<TKey, GETDATARUNLIST> { }
 
         public static string LaAyuda() {
-            return (@"mftf.exe v.2.7.2
+            return (@"mftf.exe v.2.7.2.1
 The tool can parse the $MFT from a live system, from a mounted (read-only
 included) logical drive or from a copy of the $MFT.
 It can copy files or ADS,s using the references provided in the results.
