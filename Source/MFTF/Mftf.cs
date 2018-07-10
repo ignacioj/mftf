@@ -1614,26 +1614,25 @@ namespace MFT_fileoper
                 MFT_ENTRY infoRecord = new MFT_ENTRY(refRecord);
                 if (infoRecord.valFileFlags == 1 || infoRecord.valFileFlags == 5 || infoRecord.valFileFlags == 0 || infoRecord.valFileFlags == 2 || infoRecord.valFileFlags == 3)
                 {
-                    if ((infoRecord.valFileFlags == 0 || infoRecord.valFileFlags == 2) && (CommandLine["bads"] != null)) { }
-                    else
+                    infoRecord.MFT_NEXT_ATTRIBUTE();
+                    while (infoRecord.attributeSig != END_RECORD_SIG)
                     {
-                        infoRecord.MFT_NEXT_ATTRIBUTE();
-                        while (infoRecord.attributeSig != END_RECORD_SIG)
+                        if (infoRecord.attributeSig == AL_SIG)
                         {
-                            if (infoRecord.attributeSig == AL_SIG)
+                            infoRecord.MFT_NEXT_ATTRIBUTE_VALIDO();
+                            if (infoRecord.attributeNonResident == 0)
                             {
-                                infoRecord.MFT_NEXT_ATTRIBUTE_VALIDO();
-                                if (infoRecord.attributeNonResident == 0)
-                                {
-                                    Int16 prevAttributeLength = infoRecord.attributeLength;
-                                    Int32 prevOffsetToAttribute = infoRecord.offsetToAttribute;
-                                    infoRecord.attributeLength = infoRecord.attributeContentOffset;
-                                    ProcessAttrListParaCopia(infoRecord, Convert.ToInt32(infoRecord.attributeContentLength), attIDBuscado);
-                                    infoRecord.attributeLength = prevAttributeLength;
-                                    infoRecord.attributeSig = 0x20;
-                                    infoRecord.offsetToAttribute = prevOffsetToAttribute;
-                                }
-                                else
+                                Int16 prevAttributeLength = infoRecord.attributeLength;
+                                Int32 prevOffsetToAttribute = infoRecord.offsetToAttribute;
+                                infoRecord.attributeLength = infoRecord.attributeContentOffset;
+                                ProcessAttrListParaCopia(infoRecord, Convert.ToInt32(infoRecord.attributeContentLength), attIDBuscado);
+                                infoRecord.attributeLength = prevAttributeLength;
+                                infoRecord.attributeSig = 0x20;
+                                infoRecord.offsetToAttribute = prevOffsetToAttribute;
+                            }
+                            else
+                            {
+                                if (CommandLine["o"] == null)
                                 {
                                     MFT_ENTRY attListNoResident = infoRecord;
                                     GETDATARUNLIST dataRunlist = new GETDATARUNLIST(attListNoResident);
@@ -1659,126 +1658,127 @@ namespace MFT_fileoper
                                     infoRecord.attributeSig = 0x20;
                                     infoRecord.offsetToAttribute = prevOffsetToAttribute;
                                 }
-                                if (copiado)
+                                else { break; }
+                            }
+                            if (copiado)
+                            {
+                                if (diccDatosCopia[infoRecord.attrListStartVCN].isResident)
                                 {
-                                    if (diccDatosCopia[infoRecord.attrListStartVCN].isResident)
+                                    if (CommandLine["wr"] != null)
                                     {
-                                        if (CommandLine["wr"] != null)
+                                        Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}\n------END\n", nombRef, nAds, Encoding.Default.GetString(diccDatosCopia[infoRecord.attrListStartVCN].contentResident));
+                                    }
+                                    else if (CommandLine["bads"] != null)
+                                    {
+                                        string cadenaRaw = nAds + " " + Encoding.Default.GetString(diccDatosCopia[infoRecord.attrListStartVCN].contentResident).Replace("\0", "").ToLower();
+                                        if (((cadenaRaw.Length - (cadenaRaw.ToLower().Replace(buscAds.ToLower(), String.Empty)).Length) / buscAds.Length) > 0)
                                         {
                                             Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}\n------END\n", nombRef, nAds, Encoding.Default.GetString(diccDatosCopia[infoRecord.attrListStartVCN].contentResident));
                                         }
-                                        else if (CommandLine["bads"] != null)
-                                        {
-                                            string cadenaRaw = nAds + " " + Encoding.Default.GetString(diccDatosCopia[infoRecord.attrListStartVCN].contentResident).Replace("\0", "").ToLower();
-                                            if (((cadenaRaw.Length - (cadenaRaw.ToLower().Replace(buscAds.ToLower(), String.Empty)).Length) / buscAds.Length) > 0)
-                                            {
-                                                Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}\n------END\n", nombRef, nAds, Encoding.Default.GetString(diccDatosCopia[infoRecord.attrListStartVCN].contentResident));
-                                            }
-                                        }
-                                        else
-                                        {
-                                            File.WriteAllBytes(nombreArch, diccDatosCopia[infoRecord.attrListStartVCN].contentResident);
-                                        }
                                     }
                                     else
                                     {
-                                        ulong sizeArchivo = 0;
-                                        Int32 elementos = diccDatosCopia.Count;
-                                        int n = 0;
-                                        foreach (KeyValuePair<ulong, dataParaCopia> datarun in diccDatosCopia)
-                                        {
-                                            n += 1;
-                                            if (sizeArchivo < datarun.Value.sizeCopiar) { sizeArchivo = datarun.Value.sizeCopiar; }
-                                            GetPath.FileNameAndParentFrn localizaRecordDatarun = dictSources[origenId][datarun.Value.mftFRN];
-                                            byte[] recordDatarun = ReadRaw(localizaRecordDatarun.RecordOffset, bytesxRecord);
-                                            MFT_ENTRY infoRecordDatarun = new MFT_ENTRY(recordDatarun);
-                                            infoRecordDatarun.offsetToAttribute = datarun.Value.offsetHastaData;
-                                            infoRecordDatarun.attributeSig = DATA_SIG;
-                                            infoRecordDatarun.attributeLength = BitConverter.ToInt16(infoRecordDatarun.rawRecord, infoRecordDatarun.offsetToAttribute + 4);
-                                            if (infoRecordDatarun.rawRecord[infoRecordDatarun.offsetToAttribute + 8] == 1)
-                                            {
-                                                if ((CommandLine["wr"] == null) && (CommandLine["bads"] == null))
-                                                {
-                                                    CopiaNoResidentDATA(infoRecordDatarun, n, elementos, sizeArchivo, nombreArch, ref llevoCopiado);
-                                                }
-                                                else { break; }
-                                            }
-                                            else
-                                            {
-                                                infoRecordDatarun.GET_RESIDENT_DATA();
-                                                byte[] dataResidente = new byte[infoRecordDatarun.attributeContentLength];
-                                                Array.Copy(infoRecordDatarun.rawRecord, infoRecordDatarun.offsetToAttribute + infoRecordDatarun.attributeContentOffset, dataResidente, 0, infoRecordDatarun.attributeContentLength);
-                                                if (CommandLine["wr"] != null)
-                                                {
-                                                    Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}\n------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
-                                                }
-                                                else if (CommandLine["bads"] != null)
-                                                {
-                                                    string cadenaRaw = nAds + " " + Encoding.Default.GetString(dataResidente).Replace("\0", "").ToLower();
-                                                    if (((cadenaRaw.Length - (cadenaRaw.ToLower().Replace(buscAds.ToLower(), String.Empty)).Length) / buscAds.Length) > 0)
-                                                    {
-                                                        Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}\n------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    File.WriteAllBytes(nombreArch, dataResidente);
-                                                }
-                                            }
-                                            recordDatarun = null;
-                                        }
+                                        File.WriteAllBytes(nombreArch, diccDatosCopia[infoRecord.attrListStartVCN].contentResident);
                                     }
                                 }
-                                else if (CommandLine["wr"] != null) { Console.WriteLine("\nBad reference (deleted file/folder?)."); }
-                                break;
-                            }
-                            else if (infoRecord.attributeSig == DATA_SIG)
-                            {
-                                infoRecord.MFT_NEXT_ATTRIBUTE_VALIDO();
-                                if (infoRecord.attributeID == attIDBuscado)
+                                else
                                 {
-                                    if (infoRecord.attributeNonResident == 1)
+                                    ulong sizeArchivo = 0;
+                                    Int32 elementos = diccDatosCopia.Count;
+                                    int n = 0;
+                                    foreach (KeyValuePair<ulong, dataParaCopia> datarun in diccDatosCopia)
                                     {
-                                        if ((CommandLine["wr"] == null) && (CommandLine["bads"] == null))
+                                        n += 1;
+                                        if (sizeArchivo < datarun.Value.sizeCopiar) { sizeArchivo = datarun.Value.sizeCopiar; }
+                                        GetPath.FileNameAndParentFrn localizaRecordDatarun = dictSources[origenId][datarun.Value.mftFRN];
+                                        byte[] recordDatarun = ReadRaw(localizaRecordDatarun.RecordOffset, bytesxRecord);
+                                        MFT_ENTRY infoRecordDatarun = new MFT_ENTRY(recordDatarun);
+                                        infoRecordDatarun.offsetToAttribute = datarun.Value.offsetHastaData;
+                                        infoRecordDatarun.attributeSig = DATA_SIG;
+                                        infoRecordDatarun.attributeLength = BitConverter.ToInt16(infoRecordDatarun.rawRecord, infoRecordDatarun.offsetToAttribute + 4);
+                                        if (infoRecordDatarun.rawRecord[infoRecordDatarun.offsetToAttribute + 8] == 1)
                                         {
-                                            ulong sizeArchivo = BitConverter.ToUInt64(infoRecord.rawRecord, infoRecord.offsetToAttribute + 48);
-                                            CopiaNoResidentDATA(infoRecord, 0, 0, sizeArchivo, nombreArch, ref llevoCopiado);
-                                            copiado = true;
-                                            break;
+                                            if ((CommandLine["wr"] == null) && (CommandLine["bads"] == null))
+                                            {
+                                                CopiaNoResidentDATA(infoRecordDatarun, n, elementos, sizeArchivo, nombreArch, ref llevoCopiado);
+                                            }
+                                            else { break; }
                                         }
                                         else
                                         {
-                                            break;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        infoRecord.GET_RESIDENT_DATA();
-                                        byte[] dataResidente = new byte[infoRecord.attributeContentLength];
-                                        Array.Copy(infoRecord.rawRecord, infoRecord.offsetToAttribute + infoRecord.attributeContentOffset, dataResidente, 0, infoRecord.attributeContentLength);
-                                        if (CommandLine["wr"] != null)
-                                        {
-                                            Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}\n------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
-                                        }
-                                        else if (CommandLine["bads"] != null)
-                                        {
-                                            string cadenaRaw = nAds + " " + Encoding.Default.GetString(dataResidente).Replace("\0", "").ToLower();
-                                            if (((cadenaRaw.Length - (cadenaRaw.ToLower().Replace(buscAds.ToLower(), String.Empty)).Length) / buscAds.Length) > 0)
+                                            infoRecordDatarun.GET_RESIDENT_DATA();
+                                            byte[] dataResidente = new byte[infoRecordDatarun.attributeContentLength];
+                                            Array.Copy(infoRecordDatarun.rawRecord, infoRecordDatarun.offsetToAttribute + infoRecordDatarun.attributeContentOffset, dataResidente, 0, infoRecordDatarun.attributeContentLength);
+                                            if (CommandLine["wr"] != null)
                                             {
                                                 Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}\n------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
                                             }
+                                            else if (CommandLine["bads"] != null)
+                                            {
+                                                string cadenaRaw = nAds + " " + Encoding.Default.GetString(dataResidente).Replace("\0", "").ToLower();
+                                                if (((cadenaRaw.Length - (cadenaRaw.ToLower().Replace(buscAds.ToLower(), String.Empty)).Length) / buscAds.Length) > 0)
+                                                {
+                                                    Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}\n------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
+                                                }
+                                            }
+                                            else
+                                            {
+                                                File.WriteAllBytes(nombreArch, dataResidente);
+                                            }
                                         }
-                                        else
-                                        {
-                                            File.WriteAllBytes(nombreArch, dataResidente);
-                                        }
-                                        copiado = true;
-                                        break;
+                                        recordDatarun = null;
                                     }
                                 }
                             }
-                            infoRecord.MFT_NEXT_ATTRIBUTE();
+                            else if (CommandLine["wr"] != null) { Console.WriteLine("\nBad reference (deleted file/folder?)."); }
+                            break;
                         }
+                        else if (infoRecord.attributeSig == DATA_SIG)
+                        {
+                            infoRecord.MFT_NEXT_ATTRIBUTE_VALIDO();
+                            if (infoRecord.attributeID == attIDBuscado)
+                            {
+                                if (infoRecord.attributeNonResident == 1)
+                                {
+                                    if ((CommandLine["wr"] == null) && (CommandLine["bads"] == null))
+                                    {
+                                        ulong sizeArchivo = BitConverter.ToUInt64(infoRecord.rawRecord, infoRecord.offsetToAttribute + 48);
+                                        CopiaNoResidentDATA(infoRecord, 0, 0, sizeArchivo, nombreArch, ref llevoCopiado);
+                                        copiado = true;
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        break;
+                                    }
+                                }
+                                else
+                                {
+                                    infoRecord.GET_RESIDENT_DATA();
+                                    byte[] dataResidente = new byte[infoRecord.attributeContentLength];
+                                    Array.Copy(infoRecord.rawRecord, infoRecord.offsetToAttribute + infoRecord.attributeContentOffset, dataResidente, 0, infoRecord.attributeContentLength);
+                                    if (CommandLine["wr"] != null)
+                                    {
+                                        Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}\n------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
+                                    }
+                                    else if (CommandLine["bads"] != null)
+                                    {
+                                        string cadenaRaw = nAds + " " + Encoding.Default.GetString(dataResidente).Replace("\0", "").ToLower();
+                                        if (((cadenaRaw.Length - (cadenaRaw.ToLower().Replace(buscAds.ToLower(), String.Empty)).Length) / buscAds.Length) > 0)
+                                        {
+                                            Console.WriteLine("\nREFERENCE:{0}\n------ADS NAME:\n{1}\n------DATA:\n{2}\n------END\n", nombRef, nAds, Encoding.Default.GetString(dataResidente));
+                                        }
+                                    }
+                                    else
+                                    {
+                                        File.WriteAllBytes(nombreArch, dataResidente);
+                                    }
+                                    copiado = true;
+                                    break;
+                                }
+                            }
+                        }
+                        infoRecord.MFT_NEXT_ATTRIBUTE();
                     }
                     if ((CommandLine["wr"] == null) && (CommandLine["bads"] == null))
                     {
@@ -3067,7 +3067,7 @@ namespace MFT_fileoper
         public class DictDataRunList<TKey, GETDATARUNLIST> : Dictionary<TKey, GETDATARUNLIST> { }
 
         public static string LaAyuda() {
-            return (@"mftf.exe v.2.7.2.1
+            return (@"mftf.exe v.2.7.2.2
 The tool can parse the $MFT from a live system, from a mounted (read-only
 included) logical drive or from a copy of the $MFT.
 It can copy files or ADS,s using the references provided in the results.
