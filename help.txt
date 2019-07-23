@@ -1,28 +1,36 @@
-﻿mftf.exe v.2.7
+﻿mftf.exe v.2.8
+Raw copy files and search using the content of the MFT.
 The tool can parse the $MFT from a live system, from a mounted (read-only
 included) logical drive or from a copy of the $MFT.
-It can copy files or ADS,s using the references provided in the results.
+It can copy files or ADS,s directly or using references.
 The copy is made by reading the data from the clusters so that you can copy
 protected system files or files in use.
-Deleted files and folders have their path with the prefix ""?"".
+Deleted files and folders have their path with the prefix "?".
 
 Copyright 2015 Ignacio Perez
 nachpj@gmail.com
 
-Licensed under the Apache License, Version 2.0 (the ""License"");
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
- http://www.apache.org/licenses/LICENSE-2.0
+ www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an ""AS IS"" BASIS,
+distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
 Usage:
-File copy reading from the clusters:
+
+Batch mode:
+mftf.exe -b batchfile.txt
+            One action per line, i.e.:
+                       -cp "c:\users\pepe\ntuser.dat" -n "d:\copy\pepe_ntuser.dat"
+                       -cp "c:\users\pepe\AppData\Local\Microsoft\Windows\UsrClass.dat" -n "d:\copy\pepe_UsrClass.dat"
+
+Raw copy reading from the clusters:
 mftf.exe -cp file_full_path -n full_path_destination
 
 MFT parsing:
@@ -32,27 +40,27 @@ SOURCE:
   -d drive_letter      Logical unit.
   -o MFT_file [-b bytesxrecord]    Offline $MFT file. Default bytes per MFT record is 1024 bytes.
 
-ACTIONS: COPY.
-  -cr ""ref1[|ref2..]""                         Copy the referenced file/ads to this folder. Use | as separator.
-  -cl list.txt                                Copy all the files referenced in the file list.txt.
-                                              Each line MUST start with: reference + [TAB].
-  -cn record_number                           Copy the bytes of the MFT record to this folder.
+ACTIONS: EXTRACT DATA/INFORMATION.
+  -cr "ref1[|ref2..]"        Copy the referenced file/ads to this folder. Use | as separator.
+  -wr "ref1[|ref2..]"        Only for resident data: Write to console the referenced file or ADS.
+  -cl list.txt                 Copy all the files referenced in the file list.txt.
+                                     Each line MUST start with: reference + [TAB].
+  -cn record_number            Copy the binary content of the MFT record to this folder.
+  -i record_number             Show information of the MFT record.
+  -ip path_to_file             Show information of the MFT record.
+  -w record_number             Write on screen the bytes of the MFT record.
 
 ACTIONS: SEARCH.
-  -f ""string1|string2 with spaces/|string3<""    Use | as separator. The < for an exat match. 
-  -f ""folder\string""                            The / for end of string match.
-  -f ""folder\*""                                 Use * to search any string.
+  -f "string1|string2 with spaces/|string3<"    Use | as separator. The < for an exat match.
+  -f "folder\string"                            The / for end of string match.
+  -f "folder\*"                                 Use * to search any string.
   -ff file.txt                                  The strings to search for are in file.txt.
                                                 One string per line.
   -fr string                                    Raw search in the bytes of each MFT record.
-  -fd ""\\Dir1\dir2|\\Dir1\dir3<""                Search files and folders under the tree.
+  -fd "\\Dir1\dir2|\\Dir1\dir3<"                Search files and folders under the tree.
   -r N                                          Recursion level  for fd option. Default is 0.
   -fads                                         Find all the ADS,s.
-
-ACTIONS: GET INFORMATION.
-  -i record_number          Show information of the MFT record.
-  -ip path_to_file          Show information of the MFT record.
-  -w record_number          Write on screen the bytes of the MFT record.
+  -bads "string"                                Display resident ADSs containing "string"
 
 Search OPTIONS:
 >Timeline mode: if no search is specified the entire MFT will be in the output. Two formats available:
@@ -65,11 +73,16 @@ Search OPTIONS:
     -x           Save the results in a file in order to use the option -cl.
     -s           Display only the file name.
 
-Help: 
+Common OPTIONS:
+-k  This option will keep the session open. New queries will benefit from a higher response speed.
+       You can change the origin and return without time penalty.
+
+Help:
   -h         This help.
 
 Examples:
+> mftf -b batchfile.txt
 > mftf.exe -cp c:\$MFT -n d:\maleta\mft.bin
-> mftf.exe -o mft.bin -b 4096 -f ""svchost"" -tl -tf ""2015/10/18"" -tt ""2016/01/25"" 
-> mftf.exe -d e -f ""svchost|mvui.dll|string with spaces|exact match<"" -l2t
-> mftf.exe -d e -cr 4292:128-1"
+> mftf.exe -o mft.bin -b 4096 -f "svchost" -tl -tf "2015/10/18" -tt "2016/01/25" -k
+> mftf.exe -d e -f "svchost|mvui.dll|string with spaces|exact match<" -l2t
+> mftf.exe -d e -cr 4292:128-1

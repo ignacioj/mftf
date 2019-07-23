@@ -16,7 +16,9 @@ It can copy files by filename or files and ADS,s using the references provided i
 The copy is made by reading the data from the clusters so that you can copy protected system files or files in use.
 (Imports from "kernel32.dll":	CloseHandle, CreateFile, ReadFile, SetFilePointerEx).
 
-The initial delay is due to the creation of a dictionary with full file paths.
+The initial delay is due to the creation of a dictionary with full file paths so it is recommended to use the option -k.
+
+It can accept a file with actions.
 
 Examples:
 
@@ -167,3 +169,61 @@ mftf -d d -w 36112
 	3F0 - 00 00 00 00 00 00 00 00 00 00 00 00 00 00 0B 00 ................
 
 	----------------------------------------
+
+Usage:
+
+	Batch mode:
+	mftf.exe -b batchfile.txt
+				One action per line, i.e.:
+						   -cp "c:\users\pepe\ntuser.dat" -n "d:\copy\pepe_ntuser.dat"
+						   -cp "c:\users\pepe\AppData\Local\Microsoft\Windows\UsrClass.dat" -n "d:\copy\pepe_UsrClass.dat"
+
+	Raw copy reading from the clusters:
+	mftf.exe -cp file_full_path -n full_path_destination
+
+	MFT parsing:
+	mftf.exe SOURCE ACTIONS [OPTIONS]
+
+	SOURCE:
+	  -d drive_letter      Logical unit.
+	  -o MFT_file [-b bytesxrecord]    Offline $MFT file. Default bytes per MFT record is 1024 bytes.
+
+	ACTIONS: EXTRACT DATA/INFORMATION.
+	  -cr "ref1[|ref2..]"        Copy the referenced file/ads to this folder. Use | as separator.
+	  -wr "ref1[|ref2..]"        Only for resident data: Write to console the referenced file or ADS.
+	  -cl list.txt                 Copy all the files referenced in the file list.txt.
+										 Each line MUST start with: reference + [TAB].
+	  -cn record_number            Copy the binary content of the MFT record to this folder.
+	  -i record_number             Show information of the MFT record.
+	  -ip path_to_file             Show information of the MFT record.
+	  -w record_number             Write on screen the bytes of the MFT record.
+
+	ACTIONS: SEARCH.
+	  -f "string1|string2 with spaces/|string3<"    Use | as separator. The < for an exat match.
+	  -f "folder\string"                            The / for end of string match.
+	  -f "folder\*"                                 Use * to search any string.
+	  -ff file.txt                                  The strings to search for are in file.txt.
+													One string per line.
+	  -fr string                                    Raw search in the bytes of each MFT record.
+	  -fd "\\Dir1\dir2|\\Dir1\dir3<"                Search files and folders under the tree.
+	  -r N                                          Recursion level  for fd option. Default is 0.
+	  -fads                                         Find all the ADS,s.
+	  -bads "string"                                Display resident ADSs containing "string"
+
+	Search OPTIONS:
+	>Timeline mode: if no search is specified the entire MFT will be in the output. Two formats available:
+		-tl      Format: Date  Time  [MACB]  filename  record  size
+		-l2t    Format: date,time,timezone,MACB,source,sourcetype,type,user,host,short,desc,version,filename,inode,notes,format,extra
+	  -tf yyyy/MM/dd       Filter from this date.
+	  -tt yyyy/MM/dd       to this date.
+	  -sha1                Add the SHA1 to the output (live mode).
+	>No timeline mode:
+		-x           Save the results in a file in order to use the option -cl.
+		-s           Display only the file name.
+
+	Common OPTIONS:
+	-k  This option will keep the session open. New queries will benefit from a higher response speed.
+		   You can change the origin and return without time penalty.
+
+	Help:
+	  -h         This help.
