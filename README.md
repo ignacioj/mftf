@@ -20,6 +20,8 @@ The initial delay is due to the creation of a dictionary with full file paths so
 
 It can accept a file with actions.
 
+Deleaker helps this project find leaks: http://deleaker.com/.
+
 Examples:
 
 Sparse chunks are not copied. This is very useful when copying the $Usnjrnl:$J. Here the real size of the $J was 19 Gb but 
