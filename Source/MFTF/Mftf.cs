@@ -1096,43 +1096,6 @@ namespace MFT_fileoper
                         infoMFT.MFT_NEXT_ATTRIBUTE();
                         while (infoMFT.attributeSig != END_RECORD_SIG)
                         {
-                            /*
-                        Record: 1242 [Attribute List points to records numbers: 8997 9660 137864 720641]
-                        [File]  C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36.png
-                        [File]  C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated.png
-                        [File]  C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_contrast-high.png
-                        [File]  C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png
-                        [File]  C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png
-                        [File]  C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36.png
-                        [File]  C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated.png
-                        [File]  C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_contrast-high.png
-                        SI[MACB]: 2019/07/25 21:59:46.4824646   2021/08/26 16:17:16.8392404   2021/06/26 16:32:12.1831331   2019/07/25 21:59:45.8297586
-                        FN[MACB]: 2019/07/25 21:59:46.4824646   2021/04/09 14:03:11.1809951   2021/04/15 09:41:08.3599586   2019/07/25 21:59:45.8297586
-                        FN[MACB]: 2019/07/25 21:59:46.4824646   2021/04/09 14:03:11.1809951   2021/04/15 09:41:08.3599586   2019/07/25 21:59:45.8297586
-                        FN[MACB]: 2019/07/25 21:59:46.4824646   2021/04/09 14:03:11.1809951   2021/04/15 09:41:08.3599586   2019/07/25 21:59:45.8297586
-                        FN[MACB]: 2019/07/25 21:59:46.4824646   2021/04/09 14:03:11.1809951   2021/04/15 09:41:08.3599586   2019/07/25 21:59:45.8297586
-                        FN[MACB]: 2019/07/25 21:59:46.4824646   2021/06/25 16:11:46.5018177   2021/06/26 16:32:12.1801632   2019/07/25 21:59:45.8297586
-                        FN[MACB]: 2019/07/25 21:59:46.4824646   2021/06/25 16:11:46.5018177   2021/06/26 16:32:12.1781431   2019/07/25 21:59:45.8297586
-                        FN[MACB]: 2019/07/25 21:59:46.4824646   2021/06/25 16:11:46.5018177   2021/06/26 16:32:12.1791686   2019/07/25 21:59:45.8297586
-                        FN[MACB]: 2019/07/25 21:59:46.4824646   2021/06/25 16:11:46.5018177   2021/06/26 16:32:12.1821575   2019/07/25 21:59:45.8297586
-                             
-                            Se ve como:
-                        2019/07/25,21:59:46.4824646,SI[M...],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
-                        2021/08/26,16:17:16.8392404,SI[.A..],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
-                        2021/06/26,16:32:12.1831331,SI[..C.],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
-                        2019/07/25,21:59:45.8297586,SI[...B],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
-                        2019/07/25,21:59:46.4824646,FN[M...],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
-                        2021/04/09,14:03:11.1809951,FN[.A..],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
-                        2021/04/15,09:41:08.3599586,FN[..C.],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
-                        2019/07/25,21:59:45.8297586,FN[...B],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
-                        2021/06/25,16:11:46.5018177,FN[.A..],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
-                        2021/06/26,16:32:12.1801632,FN[..C.],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
-                        2021/06/26,16:32:12.1781431,FN[..C.],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
-                        2021/06/26,16:32:12.1791686,FN[..C.],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
-                        2021/06/26,16:32:12.1821575,FN[..C.],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
-                             
-                            La alternativa es crear un diccionario con el indice del recordNumber y una lista de nombres con las fechas.
-                             */
                             if (infoMFT.attributeSig == FN_SIG)
                             {
                                 infoMFT.MFT_NEXT_ATTRIBUTE_VALIDO();
