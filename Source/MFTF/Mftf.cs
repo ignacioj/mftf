@@ -10,7 +10,6 @@ using System.Threading;
 using System.Security.Cryptography;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Linq;
-
 namespace MFT_fileoper
 {
     class MFT_get_details
@@ -58,13 +57,13 @@ namespace MFT_fileoper
         public static List<string> referencesToCopyList;
         public static List<string> buscadasList;
         public static string buscAds;
-
-
+        public static bool noValoresSI;
         static void Main(string[] args)
         {
             string[] batchContent = null;
             string[] argsK;
             int batchCount = 0;
+            noValoresSI = false;
             Regex userComSplit = new Regex("(?:^|\\s)(\"(?:[^\"]+|\"\")*\"|[^\\s]*)", RegexOptions.Compiled);
             CommandLine = new Arguments(args);
             if (CommandLine["h"] != null || args.Length == 0) { Console.WriteLine(LaAyuda()); }
@@ -242,7 +241,6 @@ namespace MFT_fileoper
                                     else
                                     {
                                         bytesxRecord = 1024;
-                                        Console.WriteLine("\nOption -b not specified: assuming 1024 bytes per file record.");
                                     }
                                 }
                                 else
@@ -405,7 +403,6 @@ namespace MFT_fileoper
                                     if ((CommandLine["o"] != null) && (CommandLine["cr"] != null))
                                     {
                                         Console.WriteLine("\nNothing to copy! It's an offline hive.");
-
                                     }
                                     else
                                     {
@@ -517,7 +514,6 @@ namespace MFT_fileoper
                             CommandLine = new Arguments(argsK);
                         }
                     }
-
                 } while (keep);
             }
             if (writer != null)
@@ -532,7 +528,6 @@ namespace MFT_fileoper
             }
             if (hDisk != null) { PInvokeWin32.CloseHandle(hDisk); }
         }
-
         public static void CopiaRawRecord(UInt32 recordToCopy, ulong mftOffset) 
         {
             string nombreArch = "[" + recordToCopy + "]_" + DateTime.Now.ToString("yyMMddHHmmss") + ".dat";
@@ -663,7 +658,6 @@ namespace MFT_fileoper
                 Console.WriteLine("\nRecord not found.");
             }
         }
-
         public static void GeneraTimelineO(ulong mftOffset)
         {
             if (CommandLine["o"] != null)
@@ -697,6 +691,7 @@ namespace MFT_fileoper
                         }
                         catch
                         {
+                            noValoresSI = false;
                         }
                     }
                     pos += bytesxRecord;
@@ -742,9 +737,7 @@ namespace MFT_fileoper
                     }
                 }
             }
-
         }
-
         public static void BuscaTodosADSs(ulong mftOffset)
         {
             if (CommandLine["o"] != null)
@@ -866,7 +859,6 @@ namespace MFT_fileoper
             }
             if ((CommandLine["tl"] == null) && (CommandLine["l2t"] == null) && (CommandLine["bads"] == null)) Console.WriteLine("Total: {0}\n", refCoincid.Count);
         }
-
         public static ulong GetDiskInfo()
         {
             PInvokeWin32.NTFS_VOLUME_DATA_BUFFER ntfsVolumeData = new PInvokeWin32.NTFS_VOLUME_DATA_BUFFER();
@@ -895,7 +887,6 @@ namespace MFT_fileoper
                 return 0;
             }
         }
-
         public static void BuscaCadenaRaw(ulong mftOffset, string cadeBuscada)
         {
             if (CommandLine["o"] != null)
@@ -990,7 +981,6 @@ namespace MFT_fileoper
             if ((CommandLine["tl"] == null) && (CommandLine["l2t"] == null)) Console.WriteLine("Total: {0}\n", refCoincid.Count);
             GetCoinciDetalles();
         }
-
         public static void BuscaCadenasO(ulong mftOffset, List<string> buscadasList = null, string recordMFT = "")
         {
             if (CommandLine["o"] != null)
@@ -1011,7 +1001,6 @@ namespace MFT_fileoper
             if ((CommandLine["tl"] == null) && (CommandLine["l2t"] == null)) Console.WriteLine("Total: {0}\n", refCoincid.Count);
             GetCoinciDetalles();
         }
-
         public static byte[] ReadRaw(ulong _offset, UInt32 numBytesToRead)
         {
             if (CommandLine["o"] != null)
@@ -1040,10 +1029,6 @@ namespace MFT_fileoper
                 }
             }
         }
-
-
-
-
         public static bool GetNTFSData(ulong _offset, ref PInvokeWin32.NTFS_VOLUME_DATA_BUFFER ntfsVolumeData)
         {
             int error = Marshal.GetLastWin32Error();
@@ -1056,7 +1041,6 @@ namespace MFT_fileoper
                 IntPtr.Zero);
             if (hDisk.ToInt32() != PInvokeWin32.INVALID_HANDLE_VALUE)
             {
-
                 int size = 0;
                 IntPtr lpOutBuffer = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(PInvokeWin32.NTFS_VOLUME_DATA_BUFFER)));
                 Marshal.StructureToPtr(ntfsVolumeData, lpOutBuffer, false);
@@ -1076,7 +1060,6 @@ namespace MFT_fileoper
                 }
                 ntfsVolumeData = (PInvokeWin32.NTFS_VOLUME_DATA_BUFFER)Marshal.PtrToStructure(lpOutBuffer, typeof(PInvokeWin32.NTFS_VOLUME_DATA_BUFFER));
                 return true;
-
             }
             else
             {
@@ -1085,7 +1068,6 @@ namespace MFT_fileoper
                 return false;
             }
         }
-
         public static void MakeSoloMFTDict(ulong mftOffset)
         {
             dictSources[origenId] = new Dictionary<uint, GetPath.FileNameAndParentFrn>();
@@ -1114,6 +1096,43 @@ namespace MFT_fileoper
                         infoMFT.MFT_NEXT_ATTRIBUTE();
                         while (infoMFT.attributeSig != END_RECORD_SIG)
                         {
+                            /*
+                        Record: 1242 [Attribute List points to records numbers: 8997 9660 137864 720641]
+                        [File]  C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36.png
+                        [File]  C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated.png
+                        [File]  C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_contrast-high.png
+                        [File]  C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png
+                        [File]  C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png
+                        [File]  C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36.png
+                        [File]  C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated.png
+                        [File]  C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_contrast-high.png
+                        SI[MACB]: 2019/07/25 21:59:46.4824646   2021/08/26 16:17:16.8392404   2021/06/26 16:32:12.1831331   2019/07/25 21:59:45.8297586
+                        FN[MACB]: 2019/07/25 21:59:46.4824646   2021/04/09 14:03:11.1809951   2021/04/15 09:41:08.3599586   2019/07/25 21:59:45.8297586
+                        FN[MACB]: 2019/07/25 21:59:46.4824646   2021/04/09 14:03:11.1809951   2021/04/15 09:41:08.3599586   2019/07/25 21:59:45.8297586
+                        FN[MACB]: 2019/07/25 21:59:46.4824646   2021/04/09 14:03:11.1809951   2021/04/15 09:41:08.3599586   2019/07/25 21:59:45.8297586
+                        FN[MACB]: 2019/07/25 21:59:46.4824646   2021/04/09 14:03:11.1809951   2021/04/15 09:41:08.3599586   2019/07/25 21:59:45.8297586
+                        FN[MACB]: 2019/07/25 21:59:46.4824646   2021/06/25 16:11:46.5018177   2021/06/26 16:32:12.1801632   2019/07/25 21:59:45.8297586
+                        FN[MACB]: 2019/07/25 21:59:46.4824646   2021/06/25 16:11:46.5018177   2021/06/26 16:32:12.1781431   2019/07/25 21:59:45.8297586
+                        FN[MACB]: 2019/07/25 21:59:46.4824646   2021/06/25 16:11:46.5018177   2021/06/26 16:32:12.1791686   2019/07/25 21:59:45.8297586
+                        FN[MACB]: 2019/07/25 21:59:46.4824646   2021/06/25 16:11:46.5018177   2021/06/26 16:32:12.1821575   2019/07/25 21:59:45.8297586
+                             
+                            Se ve como:
+                        2019/07/25,21:59:46.4824646,SI[M...],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
+                        2021/08/26,16:17:16.8392404,SI[.A..],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
+                        2021/06/26,16:32:12.1831331,SI[..C.],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
+                        2019/07/25,21:59:45.8297586,SI[...B],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
+                        2019/07/25,21:59:46.4824646,FN[M...],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
+                        2021/04/09,14:03:11.1809951,FN[.A..],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
+                        2021/04/15,09:41:08.3599586,FN[..C.],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
+                        2019/07/25,21:59:45.8297586,FN[...B],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
+                        2021/06/25,16:11:46.5018177,FN[.A..],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
+                        2021/06/26,16:32:12.1801632,FN[..C.],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
+                        2021/06/26,16:32:12.1781431,FN[..C.],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
+                        2021/06/26,16:32:12.1791686,FN[..C.],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
+                        2021/06/26,16:32:12.1821575,FN[..C.],C:\Program Files\WindowsApps\Microsoft.XboxApp_48.78.15001.0_x64__8wekyb3d8bbwe\Assets\GamesXboxHubAppList.targetsize-36_altform-unplated_contrast-high.png,1242,730,
+                             
+                            La alternativa es crear un diccionario con el indice del recordNumber y una lista de nombres con las fechas.
+                             */
                             if (infoMFT.attributeSig == FN_SIG)
                             {
                                 infoMFT.MFT_NEXT_ATTRIBUTE_VALIDO();
@@ -1394,7 +1413,6 @@ namespace MFT_fileoper
                 }
             }
         }
-
         public static void BuscaMFTRecordDesdePath(UInt32 record, ulong mftOffset, string nombreArch)
         {
             copiado = false;
@@ -1538,7 +1556,6 @@ namespace MFT_fileoper
                 }
             }
         }
-
         public static void ProcessAttrListParaCopiaDesdePath(MFT_ENTRY infoRecord, Int32 contentLength)
         {
             int cuentaLengthRecorrido = 0;
@@ -1607,7 +1624,6 @@ namespace MFT_fileoper
                 else { cuentaLengthRecorrido += Convert.ToInt32(infoRecord.attributeLength); }
             }
         }
-
         public static void BuscaMFTRecord(string referenceBuscada, string archFinal = "")
         {
             copiado = false;
@@ -1830,7 +1846,6 @@ namespace MFT_fileoper
                 Console.WriteLine("\nPlease check the reference. Error: {0}", ex.Message.ToString());
             }
         }
-
         public static void CopiaNoResidentDATA(MFT_ENTRY infoRecord, Int32 n, Int32 elementos, ulong sizeArchivo, string nombreArch, ref ulong llevoCopiado)
         {
             Int32 sizeCachos = 65536; 
@@ -1954,7 +1969,6 @@ namespace MFT_fileoper
                 dataRunlist.NEXTDATARUNLIST(infoRecord.rawRecord[dataRunlist.runlistOffset]);
             }
         }
-
         public static void ProcessAttrListParaCopia(MFT_ENTRY infoRecord, Int32 contentLength, UInt16 attIDBuscado)
         {
             int cuentaLengthRecorrido = 0;
@@ -2023,7 +2037,6 @@ namespace MFT_fileoper
                 else { cuentaLengthRecorrido += Convert.ToInt32(infoRecord.attributeLength); }
             }
         }
-
         public static void BuscaCoincidencias(uint runLength, ulong offsetBytesMFT, List<string> buscadasList)
         {
             uint runLength_ = runLength;
@@ -2051,7 +2064,6 @@ namespace MFT_fileoper
                 pos += 1;
             }
         }
-
         public static void BuscaCoincidenciasO(uint runLength, ulong offsetBytesMFT, List<string> buscadasList)
         {
             byte[] entryInfo = new byte[bytesxRecord];
@@ -2076,7 +2088,6 @@ namespace MFT_fileoper
                 pos += (int)bytesxRecord;
             }
         }
-
         public static void GetCoinciDetalles()
         {
             if ((CommandLine["tl"] != null) || (CommandLine["l2t"] != null))
@@ -2111,7 +2122,6 @@ namespace MFT_fileoper
                 }
             }
         }
-
         public static void BuscaCoincidenciasInfo(MFT_ENTRY infoRecord)
         {
             infoRecord.MFT_NEXT_ATTRIBUTE();
@@ -2146,7 +2156,6 @@ namespace MFT_fileoper
                 infoRecord.MFT_NEXT_ATTRIBUTE();
             }
         }
-
         public static void GetCoinciDetallesInfo(MFT_ENTRY infoRecord)
         {
             infoRecord.MFT_NEXT_ATTRIBUTE();
@@ -2174,9 +2183,7 @@ namespace MFT_fileoper
                 }
                 infoRecord.MFT_NEXT_ATTRIBUTE();
             }
-
         }
-
         public class MFT_ENTRY
         {
             #region vars and constants
@@ -2216,7 +2223,6 @@ namespace MFT_fileoper
             public ulong attrListStartVCN;
             private char[] macb = "M...".ToCharArray();
             public string calcSHA1 = "";
-
             private const byte SIG_OFFSET = 0;
             private const byte FIXUP_ARRAY_OFFSET = 4;
             private const byte FIXUP_ARRAY_LENGTH_OFFSET = 6;
@@ -2233,7 +2239,6 @@ namespace MFT_fileoper
             private const byte A_ID_OFFSET = 14;
             private const byte A_COL_OFFSET = 16;
             private const byte A_COO_OFFSET = 20;
-
             #endregion vars and constants
             public MFT_ENTRY(byte[] p)
             {
@@ -2289,7 +2294,6 @@ namespace MFT_fileoper
                 fileReferenceToBaseFile = BitConverter.ToUInt32(rawRecord, FRTBF_OFFSET);
                 recordNumber = BitConverter.ToUInt32(rawRecord, RN_OFFSET);
             }
-
             public void MFT_NEXT_ATTRIBUTE()
             {
                 offsetToAttribute += attributeLength;
@@ -2303,7 +2307,6 @@ namespace MFT_fileoper
                     attributeSig = 0xFFFFFFFF;
                 }
             }
-
             public void MFT_NEXT_ATTRIBUTE_VALIDO()
             {
                 attributeNonResident = rawRecord[offsetToAttribute + A_IR_OFFSET];
@@ -2313,7 +2316,6 @@ namespace MFT_fileoper
                 attributeContentLength = BitConverter.ToInt16(rawRecord, offsetToAttribute + A_COL_OFFSET);
                 attributeContentOffset = BitConverter.ToInt16(rawRecord, offsetToAttribute + A_COO_OFFSET);
             }
-
             public void MFT_SHOW_DATA()
             {
                 Dictionary<string, char[]> dictioFechasSI = new Dictionary<string, char[]>();
@@ -2338,6 +2340,7 @@ namespace MFT_fileoper
                 for (int i = 0; i < nombreFN.Count; i++)
                 {
                     nombreFN[i] = Path.Combine(GetPath.soloMFTGetFullyQualifiedPath(parentDirectoryFN, dictSources[origenId]), nombreFN[i]);
+                    
                     if ((valFileFlags == 0) || (valFileFlags == 2))
                     {
                         nombreFN[i] = string.Concat("?", nombreFN[i]);
@@ -2346,6 +2349,7 @@ namespace MFT_fileoper
                     {
                         Console.WriteLine("{0}{1}{2}", fileFlags, "  ", nombreFN[i]);
                     }
+                    
                     longName = longName.Length < nombreFN[i].Length ? nombreFN[i] : longName;
                 }
                 if ((CommandLine["tl"] == null) && (CommandLine["l2t"] == null))
@@ -2408,10 +2412,19 @@ namespace MFT_fileoper
                                 calcSHA1 = HashSHA1(longName,true);
                             }
                         }
-                        imprimeFechas(ref dictioFechasSI, "SI", longName, dateModificado_SI, dateAccessed_SI, dateMFTModif_SI, dateCreated_SI);
+                        if (noValoresSI == false)
+                        {
+                            imprimeFechas(ref dictioFechasSI, "SI", longName, dateModificado_SI, dateAccessed_SI, dateMFTModif_SI, dateCreated_SI);
+                        }
                         deduplicarFNtimeline.Clear();
                         for (int i = 0; i < dateCreated_FN.Count; i++)
                         {
+                            nombreFN[i] = Path.Combine(GetPath.soloMFTGetFullyQualifiedPath(parentDirectoryFN, dictSources[origenId]), nombreFN[i]);
+                            if ((valFileFlags == 0) || (valFileFlags == 2))
+                            {
+                                nombreFN[i] = string.Concat("?", nombreFN[i]);
+                            }
+                            longName = nombreFN[i];
                             Dictionary<string, char[]> dictioFechas = new Dictionary<string, char[]>();
                             imprimeFechas(ref dictioFechas, "FN", longName, dateModificado_FN[i], dateAccessed_FN[i], dateMFTModif_FN[i], dateCreated_FN[i]);
                         }
@@ -2435,8 +2448,6 @@ namespace MFT_fileoper
                     }
                 }
             }
-
-
             public void imprimeFechas(ref Dictionary<string, char[]> dictioFechas, string tipoFecha, string _longName, string dateModificado, string dateAccessed, string dateMFTModif, string dateCreated)
             {
                 dictioFechas.Add(dateModificado, macb);
@@ -2468,9 +2479,6 @@ namespace MFT_fileoper
                 while (enumerator.MoveNext())
                 {
                     var pair = enumerator.Current;
-                    string tempo = string.Join("_", new string[] { pair.Key, tipoFecha, new string(pair.Value), _longName });
-                    if (!deduplicarFNtimeline.ContainsKey(tempo))
-                    {
                         string[] fecha = pair.Key.Split(' ');
                             if (CommandLine["tl"] != null)
                             {
@@ -2480,18 +2488,14 @@ namespace MFT_fileoper
                             {
                                 Console.WriteLine("{0},{1},UTC,[{3}],MFT_FILETIME,{2},{7},-,-,\"{4}\",\"{4}\",1,\"{4}\",{6},{8},-,Size: [{5} B]", fecha[0], fecha[1], tipoFecha, new string(pair.Value), _longName, realFileSize.ToString("G", System.Globalization.CultureInfo.InvariantCulture), recordNumber, fileFlags, calcSHA1);
                             }
-                        deduplicarFNtimeline.Add(tempo, "");
-                    }
                 }
             }
-
             public void GET_RESIDENT_DATA()
             {
                 attributeContentLength = BitConverter.ToInt16(rawRecord, offsetToAttribute + A_COL_OFFSET);
                 attributeContentOffset = BitConverter.ToInt16(rawRecord, offsetToAttribute + A_COO_OFFSET);
             }
         }
-
         public class dataParaCopia
         {
             public ulong sizeCopiar;
@@ -2499,25 +2503,21 @@ namespace MFT_fileoper
             public UInt32 mftFRN;
             public bool isResident = false;
             public byte[] contentResident = new byte[bytesxRecord];
-
             public dataParaCopia(UInt32 mftFRN_)
             {
                 mftFRN = mftFRN_;
             }
         }
-
         public class dataADSInfo
         {
             public string name;
             public ulong size;
-
             public dataADSInfo(string name_, ulong size_)
             {
                 name = name_;
                 size = size_;
             }
         }
-
         public class GETDATARUNLIST
         {
             public int runlistOffset;
@@ -2533,7 +2533,6 @@ namespace MFT_fileoper
             public bool isSparse = false;
             public List<uint> listaDataRunLength = new List<uint>();
             public List<ulong> listaDataOffset = new List<ulong>();
-
             public GETDATARUNLIST(MFT_ENTRY recordActual)
             {
                 runlistOffset = recordActual.offsetToAttribute + BitConverter.ToInt16(recordActual.rawRecord, recordActual.offsetToAttribute + 32);
@@ -2543,7 +2542,6 @@ namespace MFT_fileoper
                 offsetBytesMFT = 0;
                 isSparse = runlistHighNibble == 0 ? true : false; 
             }
-
             public void GETLISTS(MFT_ENTRY recordActual)
             {
                 while (runlist != (byte)(0x00))
@@ -2557,7 +2555,6 @@ namespace MFT_fileoper
                     NEXTDATARUNLIST(recordActual.rawRecord[runlistOffset]);
                 }
             }
-
             public void GETCLUSTERS(MFT_ENTRY recordActual)
             {
                 if (!isSparse)
@@ -2588,7 +2585,6 @@ namespace MFT_fileoper
                 }
                 runlistOffset = runlistOffset + 1 + runlistLowNibble + runlistHighNibble;
             }
-
             public void NEXTDATARUNLIST(byte newRunlist)
             {
                 runlist = newRunlist;
@@ -2597,7 +2593,6 @@ namespace MFT_fileoper
                 isSparse = runlistHighNibble == 0 ? true : false; 
             }
         }
-
         public static void Info_SI(MFT_ENTRY entryData)
         {
             int datesOffset = entryData.offsetToAttribute + entryData.attributeContentOffset;
@@ -2606,7 +2601,6 @@ namespace MFT_fileoper
             entryData.dateMFTModif_SI = GetDateTimeFromFiletime((long)BitConverter.ToUInt32(entryData.rawRecord, datesOffset + 20), BitConverter.ToUInt32(entryData.rawRecord, datesOffset + 16));
             entryData.dateAccessed_SI = GetDateTimeFromFiletime((long)BitConverter.ToUInt32(entryData.rawRecord, datesOffset + 28), BitConverter.ToUInt32(entryData.rawRecord, datesOffset + 24));
         }
-
         public static void Info_AL(MFT_ENTRY entryData)
         {
             if (entryData.attributeNonResident == 0)
@@ -2655,13 +2649,14 @@ namespace MFT_fileoper
                         GetPath.FileNameAndParentFrn localiza = dictSources[origenId][hijo];
                         byte[] refRecord = ReadRaw(localiza.RecordOffset, bytesxRecord);
                         MFT_ENTRY infoEntryCoincid = new MFT_ENTRY(refRecord);
+                        noValoresSI = true;
                         GetCoinciDetallesInfo(infoEntryCoincid);
                         infoEntryCoincid.MFT_SHOW_DATA();
+                        noValoresSI = false;
                     }
                 }
             }
         }
-
         public static void ProcesaAttrList(MFT_ENTRY entryData, Int32 contentLength)
         {
             List<UInt32> listRecordsFNRef = new List<UInt32> { entryData.recordNumber };
@@ -2755,7 +2750,6 @@ namespace MFT_fileoper
                 }
             }
         }
-
         public static void Info_FN(MFT_ENTRY entryData)
         {
             entryData.parentDirectoryFN = BitConverter.ToUInt32(entryData.rawRecord, entryData.offsetToAttribute + entryData.attributeContentOffset);
@@ -2780,7 +2774,6 @@ namespace MFT_fileoper
                 entryData.diskFileSize = fileSizeOnDisk;
             }
         }
-
         public static void Info_DATA(MFT_ENTRY entryData)
         {
             if (entryData.attributeNameLength != 0) 
@@ -2835,7 +2828,6 @@ namespace MFT_fileoper
                 }
             }
         }
-
         public static string GetDateTimeFromFiletime(long highBytes, uint lowBytes)
         {
             string formato = "yyyy'/'MM'/'dd HH:mm:ss.fffffff";
@@ -2850,7 +2842,6 @@ namespace MFT_fileoper
                 return "No_valid_date No_valid_time";
             }
         }
-
         public static void CompruFNRecordBase(uint fileReferenceToBaseFile_, uint recordNumber_, ref List<uint>refCoincid) {
             if (fileReferenceToBaseFile_ == 0) 
             {
@@ -2867,7 +2858,6 @@ namespace MFT_fileoper
                 }
             }
         }
-
         public static void Busquedas(MFT_ENTRY infoMFT, List<string> buscadasList)
         {
             BuscaCoincidenciasInfo(infoMFT);
@@ -3035,7 +3025,6 @@ namespace MFT_fileoper
                 }
             }
         }
-
         static string HashSHA1(string filepath, bool path)
         {
             if (path)
@@ -3052,7 +3041,6 @@ namespace MFT_fileoper
                         }
                     }
                 }
-
                 catch (Exception e)
                 {
                     return "Hashing failed. Exception: " + e.Message;
@@ -3066,7 +3054,6 @@ namespace MFT_fileoper
                 return checksumSHA1;
             }
         }
-
         public class DictHijos<TType, UInt32> : Dictionary<TType, List<UInt32>> { }
         public class DictColHijos<TKey, TType, DictHijos> : Dictionary<TKey, Dictionary<TType, DictHijos>>
         {
@@ -3092,11 +3079,9 @@ namespace MFT_fileoper
                 return this[dictionaryKey][key];
             }
         }
-
         public class DictDataRunList<TKey, GETDATARUNLIST> : Dictionary<TKey, GETDATARUNLIST> { }
-
         public static string LaAyuda() {
-            return (@"mftf.exe v.2.8
+            return (@"mftf.exe v.3.0
 Raw copy files and search using the content of the MFT.
 The tool can parse the $MFT from a live system, from a mounted (read-only
 included) logical drive or from a copy of the $MFT.
@@ -3104,40 +3089,30 @@ It can copy files or ADS,s directly or using references.
 The copy is made by reading the data from the clusters so that you can copy
 protected system files or files in use.
 Deleted files and folders have their path with the prefix ""?"".
-
 Copyright 2015 Ignacio Perez
 nachpj@gmail.com
-
 Licensed under the Apache License, Version 2.0 (the ""License"");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
  www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an ""AS IS"" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
 Usage:
-
 Batch mode:
 mftf.exe -b batchfile.txt
             One action per line, i.e.:
                        -cp ""c:\users\pepe\ntuser.dat"" -n ""d:\copy\pepe_ntuser.dat""
                        -cp ""c:\users\pepe\AppData\Local\Microsoft\Windows\UsrClass.dat"" -n ""d:\copy\pepe_UsrClass.dat""
-
 Raw copy reading from the clusters:
 mftf.exe -cp file_full_path -n full_path_destination
-
 MFT parsing:
 mftf.exe SOURCE ACTIONS [OPTIONS]
-
 SOURCE:
   -d drive_letter      Logical unit.
   -o MFT_file [-b bytesxrecord]    Offline $MFT file. Default bytes per MFT record is 1024 bytes.
-
 ACTIONS: EXTRACT DATA/INFORMATION.
   -cr ""ref1[|ref2..]""        Copy the referenced file/ads to this folder. Use | as separator.
   -wr ""ref1[|ref2..]""        Only for resident data: Write to console the referenced file or ADS.
@@ -3147,7 +3122,6 @@ ACTIONS: EXTRACT DATA/INFORMATION.
   -i record_number             Show information of the MFT record.
   -ip path_to_file             Show information of the MFT record.
   -w record_number             Write on screen the bytes of the MFT record.
-
 ACTIONS: SEARCH.
   -f ""string1|string2 with spaces/|string3<""    Use | as separator. The < for an exat match. 
   -f ""folder\string""                            The / for end of string match.
@@ -3159,7 +3133,6 @@ ACTIONS: SEARCH.
   -r N                                          Recursion level  for fd option. Default is 0.
   -fads                                         Find all the ADS,s.
   -bads ""string""                                Display resident ADSs containing ""string""
-
 Search OPTIONS:
 >Timeline mode: if no search is specified the entire MFT will be in the output. Two formats available:
     -tl      Format: Date  Time  [MACB]  filename  record  size
@@ -3170,14 +3143,11 @@ Search OPTIONS:
 >No timeline mode:
     -x           Save the results in a file in order to use the option -cl.
     -s           Display only the file name.
-
 Common OPTIONS:
 -k  This option will keep the session open. New queries will benefit from a higher response speed.
        You can change the origin and return without time penalty.
-
 Help: 
   -h         This help.
-
 Examples:
 > mftf -b batchfile.txt
 > mftf.exe -cp c:\$MFT -n d:\maleta\mft.bin

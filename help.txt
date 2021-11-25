@@ -1,4 +1,4 @@
-﻿mftf.exe v.2.8
+﻿mftf.exe v.3.0
 Raw copy files and search using the content of the MFT.
 The tool can parse the $MFT from a live system, from a mounted (read-only
 included) logical drive or from a copy of the $MFT.
