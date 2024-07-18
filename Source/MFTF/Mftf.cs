@@ -28,8 +28,8 @@ namespace MFT_fileoper
         public static UInt32 bytesxRecord;
         public static string origen;
         public static string origenId;
-        public static string desdeCuando = "0000/00/00";
-        public static string hastaCuando = "9999/99/99";
+        public static string desdeCuando = "0000-00-00";
+        public static string hastaCuando = "9999-99-99";
         public static string encabezadoT = "Date,Time,[MACB],Filename,Record,Size,SHA1";
         public static List<UInt32> refCoincid;
         public static List<string> refBuscADS;
@@ -226,11 +226,11 @@ namespace MFT_fileoper
                                 {
                                     origenValido = true;
                                     origenId = HashSHA1(mftFile, false);
-                                    if (!string.IsNullOrEmpty(CommandLine["b"]))
+                                    if (!string.IsNullOrEmpty(CommandLine["by"]))
                                     {
-                                        if (Regex.IsMatch(CommandLine["b"], "^[0-9]{1,9}$"))
+                                        if (Regex.IsMatch(CommandLine["by"], "^[0-9]{1,9}$"))
                                         {
-                                            bytesxRecord = Convert.ToUInt32(CommandLine["b"]);
+                                            bytesxRecord = Convert.ToUInt32(CommandLine["by"]);
                                         }
                                         else
                                         {
@@ -264,14 +264,14 @@ namespace MFT_fileoper
                         {
                             if (CommandLine["tf"] != null)
                             {
-                                if (Regex.IsMatch(CommandLine["tf"], "^[0-9]{4}/[0-9]{2}/[0-9]{2}$"))
+                                if (Regex.IsMatch(CommandLine["tf"], "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"))
                                 {
                                     desdeCuando = CommandLine["tf"];
                                 }
                             }
                             if (CommandLine["tt"] != null)
                             {
-                                if (Regex.IsMatch(CommandLine["tt"], "^[0-9]{4}/[0-9]{2}/[0-9]{2}$"))
+                                if (Regex.IsMatch(CommandLine["tt"], "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"))
                                 {
                                     hastaCuando = CommandLine["tt"];
                                 }
@@ -2793,7 +2793,7 @@ namespace MFT_fileoper
         }
         public static string GetDateTimeFromFiletime(long highBytes, uint lowBytes)
         {
-            string formato = "yyyy'/'MM'/'dd HH:mm:ss.fffffff";
+            string formato = "yyyy'-'MM'-'dd HH:mm:ss.fffffffZ";
             long returnDateTime = highBytes << 32;
             returnDateTime = returnDateTime | lowBytes;
             if (returnDateTime >= DateTime.MinValue.Ticks && returnDateTime <= DateTime.MaxValue.Ticks)
@@ -3075,7 +3075,7 @@ MFT parsing:
 mftf.exe SOURCE ACTIONS [OPTIONS]
 SOURCE:
   -d drive_letter      Logical unit.
-  -o MFT_file [-b bytesxrecord]    Offline $MFT file. Default bytes per MFT record is 1024 bytes.
+  -o MFT_file [-by bytesxrecord]    Offline $MFT file. Default bytes per MFT record is 1024 bytes.
 ACTIONS: EXTRACT DATA/INFORMATION.
   -cr ""ref1[|ref2..]""        Copy the referenced file/ads to this folder. Use | as separator.
   -wr ""ref1[|ref2..]""        Only for resident data: Write to console the referenced file or ADS.
@@ -3100,8 +3100,8 @@ Search OPTIONS:
 >Timeline mode: if no search is specified the entire MFT will be in the output. Two formats available:
     -tl      Format: Date  Time  [MACB]  filename  record  size
     -l2t    Format: date,time,timezone,MACB,source,sourcetype,type,user,host,short,desc,version,filename,inode,notes,format,extra
-  -tf yyyy/MM/dd       Filter from this date.
-  -tt yyyy/MM/dd       to this date.
+  -tf yyyy-MM-dd       Filter from this date.
+  -tt yyyy-MM-dd       to this date.
   -sha1                Add the SHA1 to the output (live mode).
 >No timeline mode:
     -x           Save the results in a file in order to use the option -cl.
@@ -3114,7 +3114,7 @@ Help:
 Examples:
 > mftf -b batchfile.txt
 > mftf.exe -cp c:\$MFT -n d:\maleta\mft.bin
-> mftf.exe -o mft.bin -b 4096 -f ""svchost"" -tl -tf ""2015/10/18"" -tt ""2016/01/25"" -k
+> mftf.exe -o mft.bin -by 4096 -f ""svchost"" -tl -tf ""2015/10/18"" -tt ""2016/01/25"" -k
 > mftf.exe -d e -f ""svchost|mvui.dll|string with spaces|exact match<"" -l2t
 > mftf.exe -d e -cr 4292:128-1");
         }
