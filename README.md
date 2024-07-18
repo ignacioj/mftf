@@ -188,7 +188,7 @@ Usage:
 
 	SOURCE:
 	  -d drive_letter      Logical unit.
-	  -o MFT_file [-b bytesxrecord]    Offline $MFT file. Default bytes per MFT record is 1024 bytes.
+	  -o MFT_file [-by bytesxrecord]    Offline $MFT file. Default bytes per MFT record is 1024 bytes.
 
 	ACTIONS: EXTRACT DATA/INFORMATION.
 	  -cr "ref1[|ref2..]"        Copy the referenced file/ads to this folder. Use | as separator.
@@ -216,8 +216,8 @@ Usage:
 	>Timeline mode: if no search is specified the entire MFT will be in the output. Two formats available:
 		-tl      Format: Date  Time  [MACB]  filename  record  size
 		-l2t    Format: date,time,timezone,MACB,source,sourcetype,type,user,host,short,desc,version,filename,inode,notes,format,extra
-	  -tf yyyy/MM/dd       Filter from this date.
-	  -tt yyyy/MM/dd       to this date.
+	  -tf yyyy-MM-dd       Filter from this date.
+	  -tt yyyy-MM-dd       to this date.
 	  -sha1                Add the SHA1 to the output (live mode).
 	>No timeline mode:
 		-x           Save the results in a file in order to use the option -cl.
